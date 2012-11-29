@@ -1,6 +1,6 @@
 <?php
 /**
- * Rate Me a Funny 1.1.2
+ * Rate Me a Funny
 
  * Copyright 2012 Jung Oh
 
@@ -51,7 +51,7 @@ function ratemf_info()
         "website" => "",
         "author" => "Jung Oh",
         "authorsite" => "http://jung3o.com",
-        "version" => "1.1.2",
+        "version" => "1.1.3",
         "compatibility" => "16*",
         "guid" => "f357ab8855f18a4f13973d9dd01b86ca"
     );
@@ -63,7 +63,7 @@ Rate Me a Funny PLUGIN install
 */
 function ratemf_install()
 {
-    global $db;
+    global $db,$cache;
     require_once MYBB_ROOT . "inc/adminfunctions_templates.php";
 
     $ratemf_cfg = array();
@@ -203,6 +203,15 @@ function ratemf_install()
             $i++;
         }
     }
+
+    $query = $db->simple_select('ratemf');
+    $rates = array();
+    while($rate = $db->fetch_array($query))
+    {
+        $rates[$rate['postbit']] = $rate;
+        unset($rates[$rate['postbit']]['postbit']);
+    }
+    $cache->update('ratemf_rates', $rates);
 }
 
 
@@ -860,7 +869,8 @@ function ratemf_json_request()
                             {
                                 if($type !== 'name') {
                                     $count++;
-                                    $username = get_user($user)['username'];
+                                    $username = get_user($user);
+                                    $username = $username['username'];
                                     $user_namelist .= "<li><a href='./member.php?action=profile&amp;uid=".$user."'>".$username."</a></li>";
                                 }
                             }

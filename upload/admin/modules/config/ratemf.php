@@ -1,6 +1,6 @@
 <?php
 /**
- * Rate Me a Funny 1.1.2
+ * Rate Me a Funny
 
  * Copyright 2012 Jung Oh
 
