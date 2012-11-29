@@ -39,4 +39,5 @@ under it add
 Now, you should be finished!
 
 [For support please go to the MyBB forum!](http://community.mybb.com/thread-116139.html)
-[Please Report Bugs!]()https://github.com/jung3o/Rate-Me-a-Funny/issues
+
+[Please Report Bugs!](https://github.com/jung3o/Rate-Me-a-Funny/issues)
