@@ -1,3 +1,6 @@
+1.1.4 - Ugh.
+    + Added a line of code that was missing
+
 1.1.3
     + Fixed problem with invalid [
         ^ This was only a problem for PHP versions under 5.4
