@@ -51,7 +51,7 @@ function ratemf_info()
         "website" => "",
         "author" => "Jung Oh",
         "authorsite" => "http://jung3o.com",
-        "version" => "1.1.3",
+        "version" => "1.1.4",
         "compatibility" => "16*",
         "guid" => "f357ab8855f18a4f13973d9dd01b86ca"
     );
@@ -567,6 +567,7 @@ function ratemf_do_rate()
     } 
 
     $ratemf_cache = $cache->read('ratemf_rates');
+    $ratemf = $mybb->input['ratemf'];
 
     if($ratemf)
     {
