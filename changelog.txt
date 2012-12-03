@@ -1,3 +1,7 @@
+1.2.0
+    + Fixed some errors & bugs
+    + New feature - Rating names dissapear after # of rates (default 5)
+
 1.1.4 - Ugh.
     + Added a line of code that was missing
 

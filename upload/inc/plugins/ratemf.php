@@ -47,11 +47,11 @@ function ratemf_info()
     return array(
         "name" => "Rate Me a Funny",
         "description" => "This plugin lets the user rate someone a smile (icon) per postbit.
-        <br><b>Please look at <a href='https://gist.github.com/89eb1e77d51136af3c3c'>THIS READ ME</a> so you know what to do after you install it!</b>",
+        <br><b>Please look at <a href='https://github.com/jung3o/Rate-Me-a-Funny/wiki/How-to-Install'>THIS READ ME</a> so you know what to do after you install it!</b>",
         "website" => "",
         "author" => "Jung Oh",
         "authorsite" => "http://jung3o.com",
-        "version" => "1.1.4",
+        "version" => "1.2.0",
         "compatibility" => "16*",
         "guid" => "f357ab8855f18a4f13973d9dd01b86ca"
     );
@@ -101,6 +101,13 @@ function ratemf_install()
         "description" => "Allows user to rate a post 2 times to delete their rating (Yes to enable)",
         "optionscode" => "yesno",
         "value" => 1
+    );
+    $ratemf_cfg[] = array(
+        "name" => "ratemf_shrink",
+        "title" => "Shrink Rate List",
+        "description" => "How many different rates until the rate erases the names and show the numbers rated and icon? (default 5)",
+        "optionscode" => "text",
+        "value" => 5
     );
 
     $settings_group = array(
@@ -253,7 +260,8 @@ function ratemf_uninstall()
         "ratemf_multirate",
         "ratemf_double_delete",
         "ratemf_ajax",
-        "ratemf_ajax_refresh"
+        "ratemf_ajax_refresh",
+        "ratemf_shrink"
     );
     rebuild_settings();
 
@@ -344,14 +352,15 @@ function ratemf_postbit_rating($post,$ratemf)
 
     foreach($namearr as $rating_name)
     {
+        $rating_count = count($rating_name);
         if($rating_name['count'])
         {
             $rate_name = array();
             $rate_img = array();
 
-            foreach($ratemf_q as $result)
+            foreach($ratemf_q as $postbit => $result)
             {
-                $rate_name[] = $result['postbit'];
+                $rate_name[] = $postbit;
                 $rate_img[] = $result['image'];
             }
 
@@ -360,9 +369,9 @@ function ratemf_postbit_rating($post,$ratemf)
                 $get_username = array();
                 foreach($rating_name['names'] as $whom)
                 {
-
-                    if($username) {
-                        $get_username[] = array(get_user($whom), $whom);
+                    if($whom) {
+                        $get_user = get_user($whom);
+                        $get_username[] = array($get_user['username'], $whom);
                     }
                 }
                 $who_is_arr[$rating_name['rating']] = $get_username;
@@ -377,9 +386,14 @@ function ratemf_postbit_rating($post,$ratemf)
                         $getratingimgurl = $ratingimgname;
 
                         $get_count = $rating_name['count'];
-                        $return_rating_var .= "<span class='rating_name_".$rating_name['rating']."' style='margin-right:10px;'><img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> ".ucfirst($rating_name['rating'])." x <strong>$get_count</strong></span>";
 
-                        $get_rating_var[$rating_name['rating']] = "<img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> ".ucfirst($rating_name['rating'])." x <strong>$get_count</strong>";
+                        $show_rate_name = '';
+                        if($rating_count < $settings['ratemf_shrink']) {
+                            $show_rate_name = ucfirst($rating_name['rating']).' ';
+                        }
+                        $return_rating_var .= "<span class='rating_name_".$rating_name['rating']."' style='margin-right:10px;'><img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> {$show_rate_name}x <strong>$get_count</strong></span>";
+
+                        $get_rating_var[$rating_name['rating']] = "<img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> {$show_rate_name}x <strong>$get_count</strong>";
                     }
                 }
             }
@@ -436,7 +450,7 @@ function ratemf_postbit_rate_it($post)
 
     $ratemf_cache = $cache->read('ratemf_rates');
 
-    foreach($ratemf_cache as $inception)
+    foreach($ratemf_cache as $postbit => $inception)
     {
         $stop = 0;
         $fid = $post['fid'];
@@ -470,7 +484,7 @@ function ratemf_postbit_rate_it($post)
 
         if(!$stop)
         {
-            $rate_name[] = $inception['postbit'];
+            $rate_name[] = $postbit;
             $rate_img[] = $inception['image'];
         }
     }
@@ -481,9 +495,9 @@ function ratemf_postbit_rate_it($post)
         {//?tid=".$post['tid']."&ratemf=".$post['pid'].".".$rate_id."
             if(!$settings['ratemf_ajax'])
             {
-                $rtn .= "<a class='rating_link_a' href='?tid=".$post['tid']."&ratemf=".$post['pid'].".".$rate_id."'><img src='images/rating/".$rate_img[$rate_id]."' title='$rate_display_name' /></a>";
+                $rtn .= "<a title='$rate_display_name' class='rating_link_a' href='?tid=".$post['tid']."&ratemf=".$post['pid'].".".$rate_id."'><img src='images/rating/".$rate_img[$rate_id]."' /></a>";
             } else {
-                $rtn .= "<a class='rating_link_a' onclick=\"return rateUSER('".$post['pid']."','".$rate_id."');\" style='cursor:pointer'><img src='images/rating/".$rate_img[$rate_id]."' title='$rate_display_name' /></a>";
+                $rtn .= "<a title='$rate_display_name' class='rating_link_a' onclick=\"return rateUSER('".$post['pid']."','".$rate_id."');\" style='cursor:pointer'><img src='images/rating/".$rate_img[$rate_id]."' /></a>";
             }
         } 
     } else {
@@ -732,7 +746,7 @@ Rate Me a Funny PLUGIN postbit config permission
 */
 function ratemf_json_request()
 {
-    global $mybb, $charset, $db, $cache;
+    global $mybb, $charset, $db, $cache, $settings;
 
     header("Content-type: text/html; charset={$charset}");
 
@@ -768,7 +782,21 @@ function ratemf_json_request()
                 if($result['ratemf']) 
                 {
                     $result['ratemf'] = unserialize($result['ratemf']);
-
+                    $rating_count = 0;
+                    foreach($result['ratemf'] as $rate => $trash)
+                    {
+                        $foundit = 0;
+                        foreach($trash as  $type => $user)
+                        {
+                            if(is_int($type)) {
+                                $foundit = 1;
+                            }
+                        }
+                        if ($foundit) {
+                            $rating_count++;
+                        }
+                    }
+                    $showlist = 0;
                     foreach($result['ratemf'] as $rate => $trash)
                     {
                         foreach($ratemf_cache as $ratemf_post => $ratemf_list) {
@@ -801,13 +829,21 @@ function ratemf_json_request()
                             }
                             if($count)
                             {
-                                $post[$result['pid']] .= "<img style='position: relative;top: 4px;' src='./images/rating/$rate_img'> ".ucfirst($rate)." x <strong>$count</strong>";
+                                $show_rate_name = '';
+                                if($rating_count < $settings['ratemf_shrink']) {
+                                    $show_rate_name = ucfirst($rate).' ';
+                                }
+                                $post[$result['pid']] .= "<img title='".ucfirst($rate)."' style='position: relative;top: 4px;' src='./images/rating/$rate_img'> {$show_rate_name}x <strong>$count</strong>&nbsp;&nbsp;";
                             }
                         }
+                        if ($count) {
+                            $showlist = 1;
+                        }
                     }
-                    if($count)
+
+                    if($showlist)
                     {
-                        $post[$result['pid']] .= " (<a href='#'>list</a>)";
+                    $post[$result['pid']] .= " (<a href='#'>list</a>)";
                     }
                 }
                 if(!$post[$result['pid']]) {
@@ -834,12 +870,29 @@ function ratemf_json_request()
             {
                 if($result['ratemf']) 
                 {
-                    foreach($ratemf_cache as $allrate)
+                    foreach($ratemf_cache as $postbit => $trash)
                     {
-                        $post[$result['pid']][$allrate['postbit']] = '';
+                        $post[$result['pid']][$postbit] = '';
                     }
 
                     $result['ratemf'] = unserialize($result['ratemf']);
+                    $post[$result['pid']] = '';
+
+                    $rating_count = 0;
+
+                    foreach($result['ratemf'] as $rate => $trash)
+                    {
+                        $foundit = 0;
+                        foreach($trash as  $type => $user)
+                        {
+                            if(is_int($type)) {
+                                $foundit = 1;
+                            }
+                        }
+                        if ($foundit) {
+                            $rating_count++;
+                        }
+                    }
 
                     foreach($result['ratemf'] as $rate => $trash)
                     {
@@ -864,20 +917,26 @@ function ratemf_json_request()
 
                         if(!$stop)
                         {
-                            $user_namelist = '';
                             $count = 0;
+                            $rate_namelist = array();
                             foreach($trash as $type => $user)
                             {
                                 if($type !== 'name') {
                                     $count++;
                                     $username = get_user($user);
                                     $username = $username['username'];
-                                    $user_namelist .= "<li><a href='./member.php?action=profile&amp;uid=".$user."'>".$username."</a></li>";
+                                    $rate_namelist[$trash['name']] .= "<li><a href='./member.php?action=profile&amp;uid=".$user."'>".$username."</a></li>";
                                 }
                             }
                         }
+
+                        $show_rate_name = '';
+                        if($rating_count < $settings['ratemf_shrink']) {
+                            $show_rate_name = ucfirst($rate).' ';
+                        }
+
+                        $post[$result['pid']] .= "<div title='$rate' class='declare rating_name_".$rate."'><img style='position: relative;top: 4px;' src='./images/rating/$rate_img'> {$show_rate_name}x <strong>$count</strong><ul>".$rate_namelist[$rate]."</ul></div>";
                     }
-                    $post[$result['pid']] = "<div class='declare rating_name_".$rate."'><img style='position: relative;top: 4px;' src='./images/rating/$rate_img'> ".ucfirst($rate)." x <strong>$count</strong><ul>$user_namelist</ul></div>";
                 }
             }
             $post = json_encode($post);
