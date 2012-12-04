@@ -51,7 +51,7 @@ function ratemf_info()
         "website" => "",
         "author" => "Jung Oh",
         "authorsite" => "http://jung3o.com",
-        "version" => "1.2.0",
+        "version" => "1.2.1",
         "compatibility" => "16*",
         "guid" => "f357ab8855f18a4f13973d9dd01b86ca"
     );
@@ -285,10 +285,7 @@ function ratemf_postbit(&$post)
     $ratemf_yes = $post['ratemf'];
     $post['ratemf'] = '';
 
-    if($ratemf_yes)
-    {
-        $post['ratemf'] .= ratemf_postbit_rating($post,unserialize($ratemf_yes));
-    }
+    $post['ratemf'] .= ratemf_postbit_rating($post,unserialize($ratemf_yes));
 
     if($mybb->user['uid'] !== 0)
     {
@@ -308,120 +305,122 @@ function ratemf_postbit_rating($post,$ratemf)
 
     $namearr = array();
 
+    $return_var = '';
+
     $ratemf_q = $cache->read('ratemf_rates');
-
-    foreach($ratemf as $rating)
-    {   
-        $count = 0;
-        $name = array();
-        foreach($rating as $uniq => $postbit)
-        {
-            if($uniq !== 'name')
+    if ($ratemf) {
+        foreach($ratemf as $rating)
+        {   
+            $count = 0;
+            $name = array();
+            foreach($rating as $uniq => $postbit)
             {
-                $count += 1;
-                $name[] = $postbit;
-            } else {
-                $inception = $ratemf_q[$postbit];
-                $rating_stop = 0;
-
-                if($inception['selected_ranks_see'])
+                if($uniq !== 'name')
                 {
-                    $inception['selected_ranks_see'] = explode(",",$inception['selected_ranks_see']);
-                    if(!in_array($mybb->usergroup['gid'],$inception['selected_ranks_see']))
+                    $count += 1;
+                    $name[] = $postbit;
+                } else {
+                    $inception = $ratemf_q[$postbit];
+                    $rating_stop = 0;
+
+                    if($inception['selected_ranks_see'])
                     {
-                        $rating_stop = 1;
-                    }
-                }
-            }
-        }
-        if(!$rating_stop)
-        {
-            if($count)
-            {
-                $namearr[$rating['name']]['rating'] = $rating['name'];
-                $namearr[$rating['name']]['names'] = $name;
-                $namearr[$rating['name']]['count'] = $count;
-            }
-        }
-        
-    }
-
-    $return_rating_var = '';
-    $who_is = '';
-    $who_is_arr = array();
-
-    foreach($namearr as $rating_name)
-    {
-        $rating_count = count($rating_name);
-        if($rating_name['count'])
-        {
-            $rate_name = array();
-            $rate_img = array();
-
-            foreach($ratemf_q as $postbit => $result)
-            {
-                $rate_name[] = $postbit;
-                $rate_img[] = $result['image'];
-            }
-
-            if(in_array($rating_name['rating'], $rate_name))
-            {
-                $get_username = array();
-                foreach($rating_name['names'] as $whom)
-                {
-                    if($whom) {
-                        $get_user = get_user($whom);
-                        $get_username[] = array($get_user['username'], $whom);
-                    }
-                }
-                $who_is_arr[$rating_name['rating']] = $get_username;
-            }
-
-            foreach($rate_name as $ratingnameid => $ratingnamename)
-            {
-                foreach($rate_img as $ratingimgid => $ratingimgname)
-                {
-                    if($ratingnameid == $ratingimgid && $ratingnamename == $rating_name['rating'])
-                    {   
-                        $getratingimgurl = $ratingimgname;
-
-                        $get_count = $rating_name['count'];
-
-                        $show_rate_name = '';
-                        if($rating_count < $settings['ratemf_shrink']) {
-                            $show_rate_name = ucfirst($rating_name['rating']).' ';
+                        $inception['selected_ranks_see'] = explode(",",$inception['selected_ranks_see']);
+                        if(!in_array($mybb->usergroup['gid'],$inception['selected_ranks_see']))
+                        {
+                            $rating_stop = 1;
                         }
-                        $return_rating_var .= "<span class='rating_name_".$rating_name['rating']."' style='margin-right:10px;'><img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> {$show_rate_name}x <strong>$get_count</strong></span>";
-
-                        $get_rating_var[$rating_name['rating']] = "<img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> {$show_rate_name}x <strong>$get_count</strong>";
                     }
                 }
             }
-        }
-    }
-    if($get_count)
-    {
-        $return_var = "<div class='ratemf'><div class='float_left' id='rating_box_".$post['pid']."'>".$return_rating_var."(<a href='#'>list</a>)</div>";
-        $return_var .= "<div class='container' id='rating_box_".$post['pid']."_popup'>";
-
-        foreach($get_rating_var as $get_rating_var_type => $newrating)
-        {
-            $return_var .= "<div class='declare rating_name_".$get_rating_var_type."'>$newrating
-            <ul>";
-            foreach($who_is_arr as $rating_type => $ids)
+            if(!$rating_stop)
             {
-                if($rating_type === $get_rating_var_type)
+                if($count)
                 {
-                    foreach($ids as $yeesernames)
+                    $namearr[$rating['name']]['rating'] = $rating['name'];
+                    $namearr[$rating['name']]['names'] = $name;
+                    $namearr[$rating['name']]['count'] = $count;
+                }
+            }
+            
+        }
+
+        $return_rating_var = '';
+        $who_is = '';
+        $who_is_arr = array();
+
+        foreach($namearr as $rating_name)
+        {
+            $rating_count = count($rating_name);
+            if($rating_name['count'])
+            {
+                $rate_name = array();
+                $rate_img = array();
+
+                foreach($ratemf_q as $postbit => $result)
+                {
+                    $rate_name[] = $postbit;
+                    $rate_img[] = $result['image'];
+                }
+
+                if(in_array($rating_name['rating'], $rate_name))
+                {
+                    $get_username = array();
+                    foreach($rating_name['names'] as $whom)
                     {
-                        $return_var .= "<li><a href='./member.php?action=profile&uid=".$yeesernames[1]."'>$yeesernames[0]</a></li>";
+                        if($whom) {
+                            $get_user = get_user($whom);
+                            $get_username[] = array($get_user['username'], $whom);
+                        }
+                    }
+                    $who_is_arr[$rating_name['rating']] = $get_username;
+                }
+
+                foreach($rate_name as $ratingnameid => $ratingnamename)
+                {
+                    foreach($rate_img as $ratingimgid => $ratingimgname)
+                    {
+                        if($ratingnameid == $ratingimgid && $ratingnamename == $rating_name['rating'])
+                        {   
+                            $getratingimgurl = $ratingimgname;
+
+                            $get_count = $rating_name['count'];
+
+                            $show_rate_name = '';
+                            if($rating_count < $settings['ratemf_shrink']) {
+                                $show_rate_name = ucfirst($rating_name['rating']).' ';
+                            }
+                            $return_rating_var .= "<span class='rating_name_".$rating_name['rating']."' style='margin-right:10px;'><img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> {$show_rate_name}x <strong>$get_count</strong></span>";
+
+                            $get_rating_var[$rating_name['rating']] = "<img style='position: relative;top: 4px;' src='./images/rating/$getratingimgurl'> {$show_rate_name}x <strong>$get_count</strong>";
+                        }
                     }
                 }
             }
-            $return_var .= "
-            </ul>
-            </div>";
         }
+        if($get_count)
+        {
+            $return_var = "<div class='ratemf'><div class='float_left' id='rating_box_".$post['pid']."'>".$return_rating_var."(<a href='#'>list</a>)</div>";
+            $return_var .= "<div class='container' id='rating_box_".$post['pid']."_popup'>";
+
+            foreach($get_rating_var as $get_rating_var_type => $newrating)
+            {
+                $return_var .= "<div class='declare rating_name_".$get_rating_var_type."'>$newrating
+                <ul>";
+                foreach($who_is_arr as $rating_type => $ids)
+                {
+                    if($rating_type === $get_rating_var_type)
+                    {
+                        foreach($ids as $yeesernames)
+                        {
+                            $return_var .= "<li><a href='./member.php?action=profile&uid=".$yeesernames[1]."'>$yeesernames[0]</a></li>";
+                        }
+                    }
+                }
+                $return_var .= "
+                </ul>
+                </div>";
+            }
 
             $return_var .= "</div></div></div>
 <script type='text/javascript'>
@@ -430,15 +429,17 @@ function ratemf_postbit_rating($post,$ratemf)
 // -->
 </script>";
 
+        }
     }
-if(!$return_var) {$return_var = "<div class='ratemf'><div class='float_left' id='rating_box_".$post['pid']."'></div><div class='container' id='rating_box_".$post['pid']."_popup'></div>";
+    if(!$return_var) {
+        $return_var = "<div class='ratemf'><div class='float_left' id='rating_box_".$post['pid']."'></div><div class='container' id='rating_box_".$post['pid']."_popup'></div>";
 $return_var .= "</div>
 <script type='text/javascript'>
 <!--
     new PopupMenu('rating_box_".$post['pid']."');
 // -->
 </script>";}
-return $return_var;
+    return $return_var;
 }
 
 function ratemf_postbit_rate_it($post)
@@ -500,11 +501,10 @@ function ratemf_postbit_rate_it($post)
                 $rtn .= "<a title='$rate_display_name' class='rating_link_a' onclick=\"return rateUSER('".$post['pid']."','".$rate_id."');\" style='cursor:pointer'><img src='images/rating/".$rate_img[$rate_id]."' /></a>";
             }
         } 
-    } else {
-        $rtn = 'Rate_name =/= Rate_img';
     }
 
-    $rtn = "<div id='rating_link_".$post['pid']."' class='float_right'>$rtn</div>";
+
+    $rtn = "<div id='rating_link_".$post['pid']."' class='float_right'>".$rtn."</div>";
 
     return $rtn;
 }

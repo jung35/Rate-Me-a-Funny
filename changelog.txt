@@ -1,3 +1,6 @@
+1.2.1
+    + Fixed a bug where newly made threads / threads without any ratings would not update when clicked on rate.
+
 1.2.0
     + Fixed some errors & bugs
     + New feature - Rating names dissapear after # of rates (default 5)
