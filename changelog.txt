@@ -1,3 +1,6 @@
+1.2.2
+    - Doesn't say 'ratename x 0' anymore.
+
 1.2.1
     + Fixed a bug where newly made threads / threads without any ratings would not update when clicked on rate.
 

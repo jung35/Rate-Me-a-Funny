@@ -51,7 +51,7 @@ function ratemf_info()
         "website" => "",
         "author" => "Jung Oh",
         "authorsite" => "http://jung3o.com",
-        "version" => "1.2.1",
+        "version" => "1.2.2",
         "compatibility" => "16*",
         "guid" => "f357ab8855f18a4f13973d9dd01b86ca"
     );
@@ -934,8 +934,9 @@ function ratemf_json_request()
                         if($rating_count < $settings['ratemf_shrink']) {
                             $show_rate_name = ucfirst($rate).' ';
                         }
-
-                        $post[$result['pid']] .= "<div title='$rate' class='declare rating_name_".$rate."'><img style='position: relative;top: 4px;' src='./images/rating/$rate_img'> {$show_rate_name}x <strong>$count</strong><ul>".$rate_namelist[$rate]."</ul></div>";
+                        if ($count > 0) {
+                            $post[$result['pid']] .= "<div title='$rate' class='declare rating_name_".$rate."'><img style='position: relative;top: 4px;' src='./images/rating/$rate_img'> {$show_rate_name}x <strong>$count</strong><ul>".$rate_namelist[$rate]."</ul></div>";
+                        }
                     }
                 }
             }
