@@ -100,8 +100,8 @@ if(!$act)
 	$form_container->output_row("Shown Name<em>*</em>", "What will this be called on postbit?", $form->generate_text_box("postbit"));
 	$form_container->output_row("Name of the image<em>*</em>", "Please upload your images to /images/rating", $form->generate_text_box("image"));
 
-	$form_container->output_row("Groups that can use this", "If left blank, everyone can use it.<br>CTRL to select multiple", $form->generate_group_select("ranking_use[]", 0, $forum));
-	$form_container->output_row("Groups that can see this", "If left blank, everyone can see it.<br>CTRL to select multiple", $form->generate_group_select("ranking_see[]", 0, $forum));
+	$form_container->output_row("Groups that can't use this", "If left blank, everyone can use it.<br>CTRL to select multiple", $form->generate_group_select("ranking_use[]", 0, $forum));
+	$form_container->output_row("Groups that can't see this", "If left blank, everyone can see it.<br>CTRL to select multiple", $form->generate_group_select("ranking_see[]", 0, $forum));
 
 	$form_container->output_row("Forum that uses this", "If left blank, all the forums will use it. Also, if the forum that you choose has a child forum, it will not be transfered to those child forums.<br>CTRL to select multiple", $form->generate_forum_select("forum_use[]", 0,$forum));
 
@@ -237,8 +237,8 @@ if(!$act)
 			$form_container->output_row("Shown Name<em>*</em>", "What will this be called on postbit?", $form->generate_text_box("postbit",$result['postbit']));
 			$form_container->output_row("Name of the image<em>*</em>", "Please upload your images to /images/rating", $form->generate_text_box("image",$result['image']));
 
-			$form_container->output_row("Groups that can use this", "If left blank, everyone can use it.<br>CTRL to select multiple", $form->generate_group_select("ranking_use[]", $result['selected_ranks_use'], $forum));
-			$form_container->output_row("Groups that can see this", "If left blank, everyone can see it.<br>CTRL to select multiple", $form->generate_group_select("ranking_see[]", $result['selected_ranks_see'], $forum));
+			$form_container->output_row("Groups that can't use this", "If left blank, everyone can use it.<br>CTRL to select multiple", $form->generate_group_select("ranking_use[]", $result['selected_ranks_use'], $forum));
+			$form_container->output_row("Groups that can't see this", "If left blank, everyone can see it.<br>CTRL to select multiple", $form->generate_group_select("ranking_see[]", $result['selected_ranks_see'], $forum));
 
 			$form_container->output_row("Forum that uses this", "If left blank, all the forums will use it. Also, if the forum that you choose has a child forum, it will not be transfered to those child forums.<br>CTRL to select multiple", $form->generate_forum_select("forum_use[]", $result['selected_forum_use'],$forum));
 

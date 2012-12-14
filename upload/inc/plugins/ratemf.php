@@ -51,7 +51,7 @@ function ratemf_info()
         "website" => "",
         "author" => "Jung Oh",
         "authorsite" => "http://jung3o.com",
-        "version" => "1.2.2",
+        "version" => "1.2.4",
         "compatibility" => "16*",
         "guid" => "f357ab8855f18a4f13973d9dd01b86ca"
     );
@@ -109,7 +109,16 @@ function ratemf_install()
         "optionscode" => "text",
         "value" => 5
     );
+    $ratemf_cfg[] = array(
+        "name" => "ratemf_selfrate",
+        "title" => "Allow Self Rate",
+        "description" => "Allow users to rate themselves. (yes = allowed to rate self)",
+        "optionscode" => "yesno",
+        "value" => 1
+    );
 
+
+    /* Rate Me a Funn settings */
     $settings_group = array(
         "name" => "ratemf",
         "title" => "Rate Me a Funny Settings",
@@ -261,7 +270,8 @@ function ratemf_uninstall()
         "ratemf_double_delete",
         "ratemf_ajax",
         "ratemf_ajax_refresh",
-        "ratemf_shrink"
+        "ratemf_shrink",
+        "ratemf_selfrate"
     );
     rebuild_settings();
 
@@ -289,7 +299,13 @@ function ratemf_postbit(&$post)
 
     if($mybb->user['uid'] !== 0)
     {
-        $post['ratemf'] .= ratemf_postbit_rate_it($post);
+        if(!$settings['ratemf_selfrate']) {
+            if($mybb->user['uid'] != $post['uid']) {
+                $post['ratemf'] .= ratemf_postbit_rate_it($post);
+            }
+        } else {
+            $post['ratemf'] .= ratemf_postbit_rate_it($post);
+        }
     }
 
     return $post;
@@ -485,11 +501,12 @@ function ratemf_postbit_rate_it($post)
 
         if(!$stop)
         {
-            $rate_name[] = $postbit;
-            $rate_img[] = $inception['image'];
+            $rate_name[$inception['disporder']] = $postbit;
+            $rate_img[$inception['disporder']] = $inception['image'];
         }
     }
-
+    ksort($rate_name);
+    ksort($rate_img);
     if(count($rate_name) === count($rate_img))
     {
         foreach($rate_name as $rate_id => $rate_display_name)
@@ -504,7 +521,7 @@ function ratemf_postbit_rate_it($post)
     }
 
 
-    $rtn = "<div id='rating_link_".$post['pid']."' class='float_right'>".$rtn."</div>";
+    $rtn = "<div id='rating_link_".$post['pid']."' class='float_right'>".$rtn."</div><span class='ratemf float_right'><strong id='".$post['pid']."_rated'></strong></span>";
 
     return $rtn;
 }
@@ -557,10 +574,24 @@ function ratingCHECKuser() {
     });
     ratingCHECKuser.delay(".$settings['ratemf_ajax_refresh'].");
 }
+
+var count = [];
+
 function rateUSER(pid,rate) {
     new Ajax.Request('xmlhttp.php?action=ratemf_u&ratemf='+pid+'.'+rate);
     var getoptions = $('rating_link_'+pid).innerHTML;
-    $('rating_link_'+pid).innerHTML = '<span class=\'ratemf\'><strong> Rated <3 </strong></span>'+getoptions;
+    if(!$(pid+'_rated').innerHTML) {
+        $(pid+'_rated').innerHTML = ' Rated <3 ';
+    } else {
+        if(count[pid])
+        {
+            count[pid]++;
+        } else {
+            count[pid] = 2;
+        }
+
+        $(pid+'_rated').innerHTML = ' Rated <3 x'+count[pid]+' ';
+    }
 }
 </script>\";");
     if($mybb->input['ratemf'])
@@ -599,10 +630,11 @@ function ratemf_do_rate()
             {
 
                 $querys = $db->simple_select("posts","*","pid='".$ratemf[0]."'");
-                while($result=$db->fetch_array($querys,"ratemf,tid,pid")){
+                while($result=$db->fetch_array($querys,"ratemf,tid,pid,uid")){
                     $ratemf_yes = $result['ratemf'];
                     $tid = $result['tid'];
                     $fid = $result['fid'];
+                    $puid = $result['uid'];
                 }
 
                 $rate_name = array();
@@ -635,6 +667,11 @@ function ratemf_do_rate()
                         {
                             $stop_it_plz = 1;
                         }
+                    }
+
+                    if($settings['ratemf_selfrate'] == 0 && $puid == $mybb->user['uid'])
+                    {
+                        $stop_it_plz = 1;
                     }
 
                     if(!$stop_it_plz) 
