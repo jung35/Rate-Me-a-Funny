@@ -51,7 +51,7 @@ function ratemf_info()
         "website" => "",
         "author" => "Jung Oh",
         "authorsite" => "http://jung3o.com",
-        "version" => "1.2.4",
+        "version" => "1.2.5",
         "compatibility" => "16*",
         "guid" => "f357ab8855f18a4f13973d9dd01b86ca"
     );
@@ -507,6 +507,7 @@ function ratemf_postbit_rate_it($post)
     }
     ksort($rate_name);
     ksort($rate_img);
+
     if(count($rate_name) === count($rate_img))
     {
         foreach($rate_name as $rate_id => $rate_display_name)
@@ -519,7 +520,6 @@ function ratemf_postbit_rate_it($post)
             }
         } 
     }
-
 
     $rtn = "<div id='rating_link_".$post['pid']."' class='float_right'>".$rtn."</div><span class='ratemf float_right'><strong id='".$post['pid']."_rated'></strong></span>";
 
@@ -628,7 +628,6 @@ function ratemf_do_rate()
             $stop = 0;
             if(count($ratemf) == 2)
             {
-
                 $querys = $db->simple_select("posts","*","pid='".$ratemf[0]."'");
                 while($result=$db->fetch_array($querys,"ratemf,tid,pid,uid")){
                     $ratemf_yes = $result['ratemf'];
@@ -674,9 +673,14 @@ function ratemf_do_rate()
                         $stop_it_plz = 1;
                     }
 
+                    if($result['disporder'] != $ratemf[1])
+                    {
+                        $stop_it_plz = 1;
+                    }
+
                     if(!$stop_it_plz) 
                     {
-                    $rate_name[] = $ratemf_postbit;
+                    $rate_name[$result['disporder']] = $ratemf_postbit;
                     }
                 }
 
@@ -860,7 +864,7 @@ function ratemf_json_request()
                             $count = 0;
                             foreach($trash as $type => $user)
                             {
-                                if($type !== 'name') {
+                                if($type !== 'name' && !empty($trash['name'])) {
                                     $count++;
                                 }
                             }
@@ -880,7 +884,7 @@ function ratemf_json_request()
 
                     if($showlist)
                     {
-                    $post[$result['pid']] .= " (<a href='#'>list</a>)";
+                    $post[$result['pid']] .= "(<a href='#'>list</a>)";
                     }
                 }
                 if(!$post[$result['pid']]) {
@@ -958,7 +962,7 @@ function ratemf_json_request()
                             $rate_namelist = array();
                             foreach($trash as $type => $user)
                             {
-                                if($type !== 'name') {
+                                if($type !== 'name' && !empty($trash['name'])) {
                                     $count++;
                                     $username = get_user($user);
                                     $username = $username['username'];

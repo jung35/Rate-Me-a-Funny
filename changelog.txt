@@ -1,3 +1,6 @@
+1.2.5
+    + Fixed rating mistakes.. oops..
+
 1.2.4
     + Fixed wording in the ACP from "can" to "can't"
     + Fixed icon order
