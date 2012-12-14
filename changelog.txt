@@ -1,3 +1,7 @@
+1.2.3
+    + No more 'Rated &lt3' being spammed. Now it will do something like 'Rated &lt3 x2'...
+    + Now there is an option for user to allow self rate!
+
 1.2.2
     - Doesn't say 'ratename x 0' anymore.
 
