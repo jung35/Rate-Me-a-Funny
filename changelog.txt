@@ -1,3 +1,7 @@
+1.2.4
+    + Fixed wording in the ACP from "can" to "can't"
+    + Fixed icon order
+
 1.2.3
     + No more 'Rated &lt3' being spammed. Now it will do something like 'Rated &lt3 x2'...
     + Now there is an option for user to allow self rate!
