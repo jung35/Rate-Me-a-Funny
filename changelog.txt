@@ -1,3 +1,7 @@
+2.0.0-pre0.1
+    + Making it for MyBB 1.8.0
+    + Rewriting code (old version was messy)
+
 1.2.5
     + Fixed rating mistakes.. oops..
 
@@ -40,7 +44,7 @@
     + Uses Cache
         + ADDED posts & ratemf into cache datacache
     - Useless Queries
-        + On my own local server, I got from 33(v1.0.0) to 19(v1.1.0) When just browsing the forum. 
+        + On my own local server, I got from 33(v1.0.0) to 19(v1.1.0) When just browsing the forum.
 
 1.0.0
     + Fixed possible security issues

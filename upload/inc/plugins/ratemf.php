@@ -1,21 +1,7 @@
 <?php
 /**
- * Rate Me a Funny
-
- * Copyright 2014 Jung Oh
-
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
-
- ** http://www.apache.org/licenses/LICENSE-2.0
-
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-**/
+ * HMTL: http://pastebin.com/t2Sr4eFZ
+ **/
 
 // Disallow direct access to this file for security reasons
 if(!defined("IN_MYBB"))
@@ -60,6 +46,10 @@ function ratemf_info()
     "guid" => ""
   );
 }
+
+/**
+ * Rate Me A Funny plugin installer
+ */
 function ratemf_install()
 {
   global $db, $cache;
@@ -233,6 +223,7 @@ function ratemf_install()
       "selected_forum_use" => ""
     );
 
+
     foreach($ratemf_rates_preload as $key => $rating)
     {
       $insert = array(
@@ -247,14 +238,14 @@ function ratemf_install()
       $db->insert_query("ratemf_rates", $insert);
     }
 
+    $query = $db->simple_select("ratemf_rates", "*");
     $rates = array();
-    foreach($ratemf_rates_preload as $rate)
-    {
-        $rates[$rate['postbit']] = $rate;
-        unset($rates[$rate['postbit']]['postbit']);
-    }
-    $cache->update('ratemf_rates', $rates);
 
+    while($result = $db->fetch_array($query)) {
+      $rates[$result['disporder']] = $result;
+    }
+
+    $cache->update('ratemf_rates', $rates);
   }
 }
 
@@ -328,16 +319,32 @@ function ratemf_postbit(&$post)
   $ratemf_rates = $cache->read('ratemf_rates');
   $ratemf_postbit_store = $cache->read('ratemf_postbit_store');
 
+  var_dump($ratemf_rates);
+  return;
+
   $ratemf_rates_html = '';
 
   /**
    * Display the list of possible ratings for user
    */
-  if($mybb->user['uid'] !== 0 && !$settings['ratemf_selfrate'] && $mybb->user['uid'] != $post['uid'])
+
+  if($mybb->user['uid'] !== 0 && (!$settings['ratemf_selfrate'] || $mybb->user['uid'] != $post['uid']))
   {
-    foreach($ratemf_rates as $rates)
+    foreach($ratemf_rates as $key => $rates)
     {
-      $ratemf_rates_html .= '<li><img src="images/rating/'.$rates['image'].'"></li>';
+      $ranks_use = array_filter(explode(",", $rates['selected_ranks_use']));
+      $ranks_see = array_filter(explode(",", $rates['selected_ranks_see']));
+      $forum_use = array_filter(explode(",", $rates['selected_forum_use']));
+
+
+      if((count($ranks_use) && in_array($mybb->usergroup['gid'], $rank_use))
+         || (count($ranks_see) && !in_array($mybb->usergroup['gid'], $ranks_see))
+         || (count($forum_use) && !in_array($fid, $forum_use)))
+      {
+        continue;
+      }
+
+      $ratemf_rates_html .= '<li onClick="javascript:ratemf_rate('.$post['pid'].', '. $key .')"><img src="images/rating/'.$rates['image'].'"></li>';
     }
   }
 
