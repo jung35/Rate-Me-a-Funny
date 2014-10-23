@@ -18,10 +18,16 @@ $plugins->add_hook("postbit_prev", "ratemf_postbit");
 $plugins->add_hook("postbit_pm", "ratemf_postbit");
 $plugins->add_hook("postbit_announcement", "ratemf_postbit");
 
+$plugins->add_hook("showthread_start","ratemf_head");
+
+$plugins->add_hook("admin_config_permissions ", "ratemf_cfg_permission");
+
+$plugins->add_hook("xmlhttp", "ratemf_ajax");
+
 
 /**
  * Rate Me A Funny plugin info
- * @return Array some information about the plugin
+ * @return [arr] some information about the plugin
  */
 function ratemf_info()
 {
@@ -41,7 +47,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.0-pre0.1",
+    "version" => "2.0.0-pre0.2",
     "compatibility" => "18*",
     "guid" => ""
   );
@@ -156,10 +162,11 @@ function ratemf_install()
     $db->write_query("
       CREATE TABLE  " . TABLE_PREFIX . "ratemf_postbit (
         `id` SMALLINT(5) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
-        `uid` SMALLINT(5) NOT NULL ,
+        `uid` SMALLINT(5) NOT NULL,
         `pid` SMALLINT(5) NOT NULL,
-        `puid` SMALLINT(5) NOT NULL ,
-        `rid` SMALLINT(5) NOT NULL ,
+        `tid` SMALLINT(5) NOT NULL,
+        `puid` SMALLINT(5) NOT NULL,
+        `rid` SMALLINT(5) NOT NULL,
         `rate_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         `ip` VARCHAR(255) NULL
       ) ENGINE = MYISAM ;
@@ -255,13 +262,15 @@ function ratemf_install()
 function ratemf_activate()
 {
   require_once MYBB_ROOT . "inc/adminfunctions_templates.php";
+
   find_replace_templatesets("postbit", "#".preg_quote('{$post[\'iplogged\']}')."#i", '{$post[\'iplogged\']}{$post[\'ratemf\']}');
+  find_replace_templatesets("showthread", "#".preg_quote('{$headerinclude}')."#i", '{$headerinclude}{$ratemf_head}');
 }
 
 
 /**
  * Check if the plugin is installed
- * @return boolean
+ * @return [boolean]
  */
 function ratemf_is_installed()
 {
@@ -278,6 +287,7 @@ function ratemf_deactivate()
   require_once MYBB_ROOT . "inc/adminfunctions_templates.php";
 
   find_replace_templatesets("postbit", "#".preg_quote('{$post[\'ratemf\']}')."#i", '', 0);
+  find_replace_templatesets("showthread", "#".preg_quote('{$ratemf_head}')."#i", '', 0);
 }
 
 /**
@@ -308,19 +318,44 @@ function ratemf_uninstall()
 }
 
 /**
+ * Plugin's Custom stylesheet and javascript
+ * @return [void] ratemf custom stuff for head
+ */
+function ratemf_head()
+{
+    global $db, $settings, $mybb, $ratemf_head;
+
+    eval("\$ratemf_head = \"\n\n<!-- start: ratemf_head -->\";");
+
+    /**
+     * Display Stylesheet from inc/plugins/ratemf
+     */
+    eval("\$ratemf_head .= \"\n<link type='text/css' rel='stylesheet' href='inc/plugins/ratemf/ratemf.css' />\";");
+
+    /**
+     * Set base time for ajax check
+     */
+    eval("\$ratemf_head .= \"
+<script type='text/javascript'>
+  var ratemf_time = '". time() ."';
+</script>\";");
+
+    eval("\$ratemf_head .= \"\n<!-- end: ratemf_head -->\n\";");
+}
+
+/**
  * Show the ratings under postbit
- * @param  Array $post Directly from the hooks
- * @return Array       Return back the post with plugin stuff inserted
+ * @param  [arr] $post Directly from the hooks
+ * @return [arr] Return back the post with plugin stuff inserted
  */
 function ratemf_postbit(&$post)
 {
   global $db, $settings, $mybb, $cache;
 
+  $post['ratemf'] = '';
+
   $ratemf_rates = $cache->read('ratemf_rates');
   $ratemf_postbit_store = $cache->read('ratemf_postbit_store');
-
-  var_dump($ratemf_rates);
-  return;
 
   $ratemf_rates_html = '';
 
@@ -328,26 +363,107 @@ function ratemf_postbit(&$post)
    * Display the list of possible ratings for user
    */
 
-  if($mybb->user['uid'] !== 0 && (!$settings['ratemf_selfrate'] || $mybb->user['uid'] != $post['uid']))
+  if($mybb->user['uid'] !== 0 && ($settings['ratemf_selfrate'] || $mybb->user['uid'] != $post['uid']))
   {
-    foreach($ratemf_rates as $key => $rates)
+    $ratemf_rates_reordered = $ratemf_rates;
+    usort($ratemf_rates_reordered, function($a, $b) {
+      return $a['disporder'] - $b['disporder'];
+    });
+
+    foreach($ratemf_rates_reordered as $rates)
     {
       $ranks_use = array_filter(explode(",", $rates['selected_ranks_use']));
       $ranks_see = array_filter(explode(",", $rates['selected_ranks_see']));
       $forum_use = array_filter(explode(",", $rates['selected_forum_use']));
 
 
-      if((count($ranks_use) && in_array($mybb->usergroup['gid'], $rank_use))
+      if((count($ranks_use) && in_array($mybb->usergroup['gid'], $ranks_use))
          || (count($ranks_see) && !in_array($mybb->usergroup['gid'], $ranks_see))
          || (count($forum_use) && !in_array($fid, $forum_use)))
       {
         continue;
       }
 
-      $ratemf_rates_html .= '<li onClick="javascript:ratemf_rate('.$post['pid'].', '. $key .')"><img src="images/rating/'.$rates['image'].'"></li>';
+      $ratemf_rates_html .= '<li onClick="javascript:ratemf_rate('.$post['pid'].', '. $rates['id'] .')"><img src="images/rating/'.$rates['image'].'"></li>';
     }
+
+    $post['ratemf'] = '<ul class="ratemf_rates">';
+    $post['ratemf'] .= $ratemf_rates_html;
+    $post['ratemf'] .= '</ul>';
   }
+
+  $post['ratemf'] .= '<ul class="ratemf_list">';
+  $post['ratemf'] .= $ratemf_post_rate_html;
+  $post['ratemf'] .= '</ul>';
 
   $post['ratemf'] = '<div class="ratemf_postbit">'.$post['ratemf'].'</div>';
   return $post;
+}
+
+/**
+ * Admin permission for plugin
+ * @return [string] Just a question
+ */
+function ratemf_cfg_permission($admin_permissions)
+{
+    $admin_permissions['ratemf'] = "Can use 'Rate Me a Funny' plugin?";
+    return $admin_permissions;
+}
+
+/**
+ * Handles all the ajax requests made for/by users & refreshing
+ * @return [string] json
+ */
+function ratemf_ajax()
+{
+  global $mybb, $charset, $db, $cache, $settings;
+
+  if($mybb->input['plugin'] == 'ratemf') {
+    header("Content-type: application/json; charset={$charset}");
+
+    $disabled_group = explode(",", $settings['ratemf_disabled_group']);
+    if((count($disabled_group) && in_array($mybb->usergroup['gid'], $disabled_group)))
+    {
+      echo json_encode(array("error" => "Sorry, this group is not allowed."));
+      return;
+    }
+
+    $my_post_key = $mybb->input['my_post_key'];
+
+    if(is_null($my_post_key)
+       || !verify_post_check($my_post_key, true))
+    {
+      echo json_encode(array("error" => "Authentication failure."));
+      return;
+    }
+
+    switch($mybb->input['type'])
+    {
+      case 'rate':
+        if(is_null($mybb->input['pid']) || is_null($mybb->input['rid']))
+        {
+          echo json_encode(array("error" => "Missing value."));
+          return;
+        }
+        ratemf_rate_action($mybb->input['pid'], $mybb->input['rid']);
+        return;
+      case 'refresh':
+        return;
+      default:
+        echo json_encode(array("error" => "Invalid type."));
+        return;
+    }
+  }
+}
+
+/**
+ * Determines if the user is allowed to rate the
+ * request post and acts accordingly
+ * @param  [int] $postId id of the post that is being rated
+ * @param  [int] $rateId id of the rating
+ * @return [void] echos out json text
+ */
+function ratemf_rate_action($postId, $rateId)
+{
+  global $db, $settings;
 }

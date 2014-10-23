@@ -22,12 +22,15 @@
 .ratemf_rates {
     float:right;
     list-style: none;
-    margin: 0;
+    margin: 0 -7px 0 0;
     padding: 0;
 }
 
 .ratemf_rates li {
+    display: inline-block;
     opacity: 0.5;
+    margin: 3px 3px 5px;
+    cursor: pointer;
 }
 
 .ratemf_rates li:hover {
