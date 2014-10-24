@@ -27,7 +27,7 @@ $plugins->add_hook("xmlhttp", "ratemf_ajax");
 
 /**
  * Rate Me A Funny plugin info
- * @return [arr] some information about the plugin
+ * @return array some information about the plugin
  */
 function ratemf_info()
 {
@@ -168,7 +168,8 @@ function ratemf_install()
         `tid` SMALLINT(5) NOT NULL,
         `puid` SMALLINT(5) NOT NULL,
         `rid` SMALLINT(5) NOT NULL,
-        `rate_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `rate_time` DATETIME NOT NULL,
+        `del_time` DATETIME NULL,
         `ip` VARCHAR(255) NULL
       ) ENGINE = MYISAM ;
     ");
@@ -271,7 +272,7 @@ function ratemf_activate()
 
 /**
  * Check if the plugin is installed
- * @return [boolean]
+ * @return boolean
  */
 function ratemf_is_installed()
 {
@@ -346,8 +347,8 @@ function ratemf_head()
 
 /**
  * Show the ratings under postbit
- * @param  [arr] $post Directly from the hooks
- * @return [arr] Return back the post with plugin stuff inserted
+ * @param  array Directly from the hooks
+ * @return array Return back the post with plugin stuff inserted
  */
 function ratemf_postbit(&$post)
 {
@@ -357,7 +358,8 @@ function ratemf_postbit(&$post)
 
   $ratemf_rates = $cache->read('ratemf_rates');
 
-  $ratemf_rates_html = '';
+  $rates_list = '';
+  $users_list = '';
 
   /**
    * Display the list of possible ratings for user
@@ -383,20 +385,47 @@ function ratemf_postbit(&$post)
       {
         continue;
       }
-
-      $ratemf_rates_html .= '<li onClick="javascript:ratemf_rate('.$post['pid'].', '. $rates['id'] .')"><img src="images/rating/'.$rates['image'].'"></li>';
+      $rates_list .= ratemf_html("rates_list_item", array(
+        'pid' => $post['pid'],
+        'rid' => $rates['id'],
+        'image' => $rates['image']
+      ));
     }
 
-    $post['ratemf'] = '<ul class="ratemf_rates">';
-    $post['ratemf'] .= $ratemf_rates_html;
-    $post['ratemf'] .= '</ul>';
+    $post['ratemf'] = ratemf_html("rates_list_wrapper", $rates_list);
   }
 
-  $post['ratemf'] .= '<ul class="ratemf_list">';
-  $post['ratemf'] .= $ratemf_post_rate_html;
-  $post['ratemf'] .= '</ul>';
+  $query = $db->write_query("
+    SELECT
+      pbit.rid AS `rate_id`,
+      pbit.uid AS `rate_uid`,
+      rates.postbit AS `rate_postbit`,
+      rates.image AS `rate_image`,
+      u.username AS `rate_username`
+    FROM " . TABLE_PREFIX . "ratemf_postbit pbit
+    LEFT JOIN
+      ". TABLE_PREFIX ."users u
+      ON
+        u.uid = pbit.uid
+    LEFT JOIN
+      ". TABLE_PREFIX ."ratemf_rates rates
+      ON
+        rates.id = pbit.rid
+    WHERE
+      pbit.pid='".$db->escape_string($post['pid'])."'
+      AND
+      pbit.del_time IS NULL
+    ORDER BY pbit.id DESC
+  ");
 
-  $post['ratemf'] = '<div class="ratemf_postbit">'.$post['ratemf'].'</div>';
+  while($result = $db->fetch_array($query))
+  {
+    var_dump($result);
+  }
+
+  $post['ratemf'] .= ratemf_html("users_list_wrapper", $users_list);
+
+  $post['ratemf'] = ratemf_html("wrapper", $post['ratemf']);
   return $post;
 }
 
@@ -448,6 +477,12 @@ function ratemf_ajax()
         echo json_encode(ratemf_rate_action($mybb->get_input('pid'), $mybb->get_input('rid')));
         return;
       case 'refresh':
+        if(is_null($mybb->get_input('tid')) || is_null($mybb->get_input('timestamp')))
+        {
+          echo json_encode(array("error" => "Missing value."));
+          return;
+        }
+        echo json_encode(ratemf_refresh_action($mybb->get_input('tid'), $mybb->get_input('timestamp')));
         return;
       default:
         echo json_encode(array("error" => "Invalid type."));
@@ -465,12 +500,17 @@ function ratemf_ajax()
  */
 function ratemf_rate_action($postId, $rateId)
 {
-  global $db, $settings, $cache;
+  global $db, $settings, $cache, $mybb;
 
+  /**
+   * User tried to make up their own rating id...
+   */
   $rating = ratemf_find_rates_by('id', $rateId);
   if(!$rating) return array("error" => "Invalid rating.");
 
-
+  /**
+   * Sucks to be able not to use this awesome plugin=
+   */
   $ranks_use = array_filter(explode(",", $rating['selected_ranks_use']));
   $ranks_see = array_filter(explode(",", $rating['selected_ranks_see']));
 
@@ -494,15 +534,25 @@ function ratemf_rate_action($postId, $rateId)
     return array('error' => 'Invalid rating');
   }
 
+  /**
+   * What a loser
+   */
   if(!$settings['ratemf_selfrate']
      && $mybb->user['uid'] == $post['uid']) return array('error' => 'Cannot rate self');
 
   $query = $db->simple_select("ratemf_postbit", "id, rid",
     "uid='". $db->escape_string($mybb->user['uid']) ."'
-     and pid='". $db->escape_string($post['pid']) ."'");
+     AND
+     pid='". $db->escape_string($post['pid']) ."'
+     AND
+     del_time IS NULL");
 
   $previous_rate = array();
 
+  /**
+   * Check on any existing rating made by
+   * this user on this post with settings
+   */
   while($result = $db->fetch_array($query))
   {
     if($result != null)
@@ -511,7 +561,10 @@ function ratemf_rate_action($postId, $rateId)
       {
         if(!$settings['ratemf_double_delete']) return array("error" => "You have already rated.");
 
-        $db->delete_query("ratemf_postbit", "id=".$db->escape_string($result['id']));
+        $db->update_query("ratemf_postbit",
+          array("del_time" => date("Y-m-d H:i:s", time())),
+          "id=".$db->escape_string($result['id']));
+
         return array("success" => "Removed Rating");
 
       } else {
@@ -520,9 +573,17 @@ function ratemf_rate_action($postId, $rateId)
     }
   }
 
-  if(count($previous_rate) > 0) {
-    if(!$settings['ratemf_multirate']) {
-      $db->delete_query("ratemf_postbit",
+  /**
+   * User might have had multi-rate when the permissions allowed it
+   * but now check again just incase and delete all of the ratings
+   * that the user had made before inserting a new rating on the post
+   */
+  if(count($previous_rate) > 0)
+  {
+    if(!$settings['ratemf_multirate'])
+    {
+      $db->update_query("ratemf_postbit",
+        array("del_time" => date("Y-m-d H:i:s", time())),
         "pid='".$db->escape_string($post['id'])."'
         and uid='".$db->escape_string($mybb->user['uid'])."'");
     }
@@ -534,6 +595,7 @@ function ratemf_rate_action($postId, $rateId)
     "tid" => $db->escape_string($post['tid']), // Thread Id
     "puid" => $db->escape_string($post['uid']), // Post User Id
     "rid" => $db->escape_string($rateId), // Rating Id
+    "rate_time" => $db->escape_string(date("Y-m-d H:i:s", time())), // Rating Id
     "ip" => $db->escape_string(get_ip()) // IP Address
   );
   $db->insert_query("ratemf_postbit", $insert);
@@ -542,13 +604,94 @@ function ratemf_rate_action($postId, $rateId)
 
 }
 
+function ratemf_refresh_action($threadId, $timestamp)
+{
+  global $db, $settings, $cache;
+
+  $datetime = date("Y-m-d H:i:s", $timestamp);
+
+  $query = $db->write_query("
+    SELECT
+      p.pid AS `post_id`,
+      pbit.uid AS `postbit_uid`,
+      u.username AS `postbit_username`,
+      pbit.rid AS `rate_id`,
+      rates.postbit AS `rate_postbit`,
+      rates.image AS `rate_image`,
+      pbit.rate_time AS `rate_time`,
+      pbit.del_time AS `del_time`
+    FROM " . TABLE_PREFIX . "ratemf_postbit pbit
+    LEFT JOIN
+      " . TABLE_PREFIX . "posts p
+      ON
+        p.tid = pbit.tid
+        AND
+        p.pid = pbit.pid
+    LEFT JOIN
+      ". TABLE_PREFIX ."users u
+      ON
+        u.uid = pbit.uid
+    LEFT JOIN
+      ". TABLE_PREFIX ."ratemf_rates rates
+      ON
+        rates.id = pbit.rid
+    WHERE
+      pbit.tid='".$db->escape_string($threadId)."'
+      AND
+      (
+        pbit.rate_time > '".$db->escape_string($datetime)."'
+        OR
+        pbit.del_time > '".$db->escape_string($datetime)."'
+      )
+  ");
+
+  $result = Array();
+  while($result[] = $db->fetch_array($query));
+
+  return array_filter($result);
+}
+
+function ratemf_html($type, $value)
+{
+  if(empty($type) || empty($value)) {
+    return;
+  }
+
+  switch($type) {
+    case("wrapper"):
+      return '<div class="ratemf_postbit">'.$value.'</div>';
+    case("rates_list_wrapper"):
+      return '
+      <ul class="ratemf_list">
+        '. $value. '
+      </ul>';
+    case("rates_list_item"):
+      return '
+      <li onClick="javascript:ratemf_rate('.$value['pid'].', '. $value['rid'] .')">
+        <img src="images/rating/'.$value['image'].'">
+      </li>';
+    case("users_list_wrapper"):
+      return '
+      <ul class="ratemf_users">
+        '. $value .'
+        <li class="ratemf_users_show" onClick="javascript:showList();">
+          (<span>list</span>)
+        </li>
+      </ul>';
+    case("users_list_item"):
+      break;
+  }
+  return;
+}
+
 /**
  * Look for value in ratemf_rates 2D array
  * @param  [str] $type  [index of array to look in]
  * @param  [str] $value [value of the array to compare]
  * @return [arr]        [array of the rating found]
  */
-function ratemf_find_rates_by($type, $value) {
+function ratemf_find_rates_by($type, $value)
+{
   global $cache;
   $ratemf_rates = $cache->read('ratemf_rates');
 

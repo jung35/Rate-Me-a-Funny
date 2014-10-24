@@ -1,38 +1,38 @@
+.ratemf_users {
+  width: auto;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ratemf_users li {
+  display: inline-block;
+}
+
+.ratemf_users .ratemf_users_show {
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.ratemf_users .ratemf_users_show:hover span {
+  text-decoration: underline;
+}
+
 .ratemf_list {
-    width: auto;
-    overflow: auto;
-    background: yellow;
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  float:right;
+  list-style: none;
+  margin: 0 -7px 0 0;
+  padding: 0;
 }
 
 .ratemf_list li {
-    display: inline-block;
+  display: inline-block;
+  opacity: 0.5;
+  margin: 3px 3px 5px;
+  cursor: pointer;
 }
 
-.ratemf_list .ratemf_list_show {
-    cursor: pointer;
-}
-
-.ratemf_list .ratemf_list_show:hover span {
-    text-decoration: underline;
-}
-
-.ratemf_rates {
-    float:right;
-    list-style: none;
-    margin: 0 -7px 0 0;
-    padding: 0;
-}
-
-.ratemf_rates li {
-    display: inline-block;
-    opacity: 0.5;
-    margin: 3px 3px 5px;
-    cursor: pointer;
-}
-
-.ratemf_rates li:hover {
-    opacity: 0.8;
+.ratemf_list li:hover {
+  opacity: 0.8;
 }
