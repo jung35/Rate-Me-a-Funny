@@ -47,7 +47,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.0-pre0.2",
+    "version" => "2.0.0",
     "compatibility" => "18*",
     "guid" => ""
   );
@@ -154,6 +154,7 @@ function ratemf_install()
      *
      * uid =>   User ID of the person rating
      * pid =>   Post ID of the post that is being rated
+     * tid =>   Thread ID of the post that is being rated
      * puid =>  User ID of the post that is being rated
      * rid =>   ID of the rating from `ratemf_rates`
      * rate_time =>   Time when the rating was made
@@ -355,7 +356,6 @@ function ratemf_postbit(&$post)
   $post['ratemf'] = '';
 
   $ratemf_rates = $cache->read('ratemf_rates');
-  $ratemf_postbit_store = $cache->read('ratemf_postbit_store');
 
   $ratemf_rates_html = '';
 
@@ -445,7 +445,7 @@ function ratemf_ajax()
           echo json_encode(array("error" => "Missing value."));
           return;
         }
-        ratemf_rate_action($mybb->input['pid'], $mybb->input['rid']);
+        echo json_encode(ratemf_rate_action($mybb->input['pid'], $mybb->input['rid']));
         return;
       case 'refresh':
         return;
@@ -465,5 +465,98 @@ function ratemf_ajax()
  */
 function ratemf_rate_action($postId, $rateId)
 {
-  global $db, $settings;
+  global $db, $settings, $cache;
+
+  $rating = ratemf_find_rates_by('id', $rateId);
+  if(!$rating) return array("error" => "Invalid rating.");
+
+
+  $ranks_use = array_filter(explode(",", $rating['selected_ranks_use']));
+  $ranks_see = array_filter(explode(",", $rating['selected_ranks_see']));
+
+  if((count($ranks_use) && in_array($mybb->usergroup['gid'], $ranks_use))
+     || (count($ranks_see) && !in_array($mybb->usergroup['gid'], $ranks_see)))
+  {
+    return array('error' => 'Invalid rating');
+  }
+
+  $query = $db->simple_select("posts", "*", "pid='". $db->escape_string($postId) ."'", array(
+    "limit" => 1
+  ));
+
+  $post = $db->fetch_array($query);
+
+  if($post == null) return array("error" => "Invalid post.");
+
+  $forum_use = array_filter(explode(",", $rating['selected_forum_use']));
+  if(count($forum_use) && !in_array($fid, $forum_use))
+  {
+    return array('error' => 'Invalid rating');
+  }
+
+  if(!$settings['ratemf_selfrate']
+     && $mybb->user['uid'] == $post['uid']) return array('error' => 'Cannot rate self');
+
+  $query = $db->simple_select("ratemf_postbit", "id",
+    "uid='". $db->escape_string($mybb->user['uid']) ."'
+     and pid='". $db->escape_string($post->pid) ."'");
+
+  $previous_rate = array();
+
+  while($result = $db->fetch_array($query))
+  {
+    if($result != null)
+    {
+      if($result['rid'] == $rateId)
+      {
+        if(!$settings['ratemf_double_delete']) return array("error" => "You have already rated.");
+
+        $db->delete_query("ratemf_postbit", "id=".$db->escape_string($result['id']));
+        return array("success" => "Removed Rating");
+
+      } else {
+        $previous_rate[] = $result;
+      }
+    }
+  }
+
+  if(count($previous_rate) > 0) {
+    if(!$settings['ratemf_multirate']) {
+      $db->delete_query("ratemf_postbit",
+        "pid='".$db->escape_string($post['id'])."'
+        and uid='".$db->escape_string($mybb->user['uid'])."'");
+    }
+  }
+
+  $insert = array(
+    "uid" => $db->escape_string($mybb->user['uid']), // User Id
+    "pid" => $db->escape_string($post['pid']), // Post Id
+    "tid" => $db->escape_string($post['tid']), // Thread Id
+    "puid" => $db->escape_string($post['uid']), // Post User Id
+    "rid" => $db->escape_string($rateId), // Rating Id
+    "ip" => $db->escape_string(get_ip()) // IP Address
+  );
+  $db->insert_query("ratemf_postbit", $insert);
+
+  return array("success" => "Rated");
+
+}
+
+/**
+ * Look for value in ratemf_rates 2D array
+ * @param  [str] $type  [index of array to look in]
+ * @param  [str] $value [value of the array to compare]
+ * @return [arr]        [array of the rating found]
+ */
+function ratemf_find_rates_by($type, $value) {
+  global $cache;
+  $ratemf_rates = $cache->read('ratemf_rates');
+
+  foreach($ratemf_rates as $key => $rates) {
+    if($rates[$type] == $value) {
+      return $ratemf_rates[$key];
+    }
+  }
+
+  return false;
 }
