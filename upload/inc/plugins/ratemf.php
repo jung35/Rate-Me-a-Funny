@@ -418,7 +418,7 @@ function ratemf_ajax()
 {
   global $mybb, $charset, $db, $cache, $settings;
 
-  if($mybb->input['plugin'] == 'ratemf') {
+  if($mybb->get_input('plugin') == 'ratemf') {
     header("Content-type: application/json; charset={$charset}");
 
     $disabled_group = explode(",", $settings['ratemf_disabled_group']);
@@ -428,7 +428,7 @@ function ratemf_ajax()
       return;
     }
 
-    $my_post_key = $mybb->input['my_post_key'];
+    $my_post_key = $mybb->get_input('my_post_key');
 
     if(is_null($my_post_key)
        || !verify_post_check($my_post_key, true))
@@ -437,15 +437,15 @@ function ratemf_ajax()
       return;
     }
 
-    switch($mybb->input['type'])
+    switch($mybb->get_input('type'))
     {
       case 'rate':
-        if(is_null($mybb->input['pid']) || is_null($mybb->input['rid']))
+        if(is_null($mybb->get_input('pid')) || is_null($mybb->get_input('rid')))
         {
           echo json_encode(array("error" => "Missing value."));
           return;
         }
-        echo json_encode(ratemf_rate_action($mybb->input['pid'], $mybb->input['rid']));
+        echo json_encode(ratemf_rate_action($mybb->get_input('pid'), $mybb->get_input('rid')));
         return;
       case 'refresh':
         return;
@@ -497,9 +497,9 @@ function ratemf_rate_action($postId, $rateId)
   if(!$settings['ratemf_selfrate']
      && $mybb->user['uid'] == $post['uid']) return array('error' => 'Cannot rate self');
 
-  $query = $db->simple_select("ratemf_postbit", "id",
+  $query = $db->simple_select("ratemf_postbit", "id, rid",
     "uid='". $db->escape_string($mybb->user['uid']) ."'
-     and pid='". $db->escape_string($post->pid) ."'");
+     and pid='". $db->escape_string($post['pid']) ."'");
 
   $previous_rate = array();
 
