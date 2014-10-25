@@ -1,9 +1,4 @@
 <?php
-/**
- * HMTL: http://pastebin.com/t2Sr4eFZ
- **/
-
-// Disallow direct access to this file for security reasons
 if(!defined("IN_MYBB"))
 {
   die("Direct initialization of this file is not allowed.<br /><br />Please make sure IN_MYBB is defined.");
@@ -47,7 +42,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.0",
+    "version" => "2.0.2",
     "compatibility" => "18*",
   );
 }
@@ -565,7 +560,7 @@ function ratemf_postbit(&$post)
 
 /**
  * Admin permission for plugin
- * @return [string] Just a question
+ * @return string Just a question for permission
  */
 function ratemf_cfg_permission($admin_permissions)
 {
@@ -575,7 +570,7 @@ function ratemf_cfg_permission($admin_permissions)
 
 /**
  * Handles all the ajax requests made for/by users & refreshing
- * @return [string] json
+ * @return string json
  */
 function ratemf_ajax()
 {
@@ -628,9 +623,9 @@ function ratemf_ajax()
 /**
  * Determines if the user is allowed to rate the
  * request post and acts accordingly
- * @param  [int] $postId id of the post that is being rated
- * @param  [int] $rateId id of the rating
- * @return [void] echos out json text
+ * @param  integer Id of the post that is being rated
+ * @param  integer Id of the rating
+ * @return void Echos out json text
  */
 function ratemf_rate_action($postId, $rateId)
 {
@@ -739,11 +734,17 @@ function ratemf_rate_action($postId, $rateId)
 
 }
 
+/**
+ * Grabs the ratings from database based on time and returns array back
+ * @param  integer Thread ID of the requested refresh
+ * @param  integer Unix timestamp in seconds
+ * @return array ratings
+ */
 function ratemf_refresh_action($threadId, $timestamp)
 {
   global $db, $settings, $cache;
 
-  $datetime = date("Y-m-d H:i:s", $timestamp + 1);
+  $datetime = date("Y-m-d H:i:s", $timestamp);
   $result = Array();
 
   $query = $db->write_query("
@@ -805,7 +806,7 @@ function ratemf_refresh_action($threadId, $timestamp)
     WHERE
       pbit.tid='".$db->escape_string($threadId)."'
       AND
-      pbit.del_time >= '".$db->escape_string($datetime)."'
+      pbit.del_time > '".$db->escape_string($datetime)."'
   ");
   while($result[] = $db->fetch_array($query));
 
@@ -818,6 +819,13 @@ function ratemf_refresh_action($threadId, $timestamp)
   return $result;
 }
 
+/**
+ * Handles all the html for the php-end
+ * (this is again repeated for the javascript part above)
+ * @param  string title of the html string
+ * @param  string/array values to fit into the string requested
+ * @return string html
+ */
 function ratemf_html($type, $value)
 {
   global $mybb;
@@ -887,9 +895,9 @@ function ratemf_html($type, $value)
 
 /**
  * Look for value in ratemf_rates 2D array
- * @param  [str] $type  [index of array to look in]
- * @param  [str] $value [value of the array to compare]
- * @return [arr]        [array of the rating found]
+ * @param  string index of array to look in
+ * @param  string value of the array to compare
+ * @return array  array of the rating found
  */
 function ratemf_find_rates_by($type, $value)
 {

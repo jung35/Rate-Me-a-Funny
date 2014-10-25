@@ -2,6 +2,10 @@
   position: relative;
 }
 
+.post {
+  overflow: visible;
+}
+
 .ratemf_postbit {
   margin: 10px 0 0;
 }
