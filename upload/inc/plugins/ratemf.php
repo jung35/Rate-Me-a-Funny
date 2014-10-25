@@ -257,6 +257,7 @@ function ratemf_activate()
   require_once MYBB_ROOT . "inc/adminfunctions_templates.php";
 
   find_replace_templatesets("postbit", "#".preg_quote('{$post[\'iplogged\']}')."#i", '{$post[\'iplogged\']}{$post[\'ratemf\']}');
+  find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'iplogged\']}')."#i", '{$post[\'iplogged\']}{$post[\'ratemf\']}');
   find_replace_templatesets("showthread", "#".preg_quote('{$headerinclude}')."#i", '{$headerinclude}{$ratemf_head}');
 }
 
@@ -280,6 +281,7 @@ function ratemf_deactivate()
   require_once MYBB_ROOT . "inc/adminfunctions_templates.php";
 
   find_replace_templatesets("postbit", "#".preg_quote('{$post[\'ratemf\']}')."#i", '', 0);
+  find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'ratemf\']}')."#i", '', 0);
   find_replace_templatesets("showthread", "#".preg_quote('{$ratemf_head}')."#i", '', 0);
 }
 
@@ -820,7 +822,7 @@ function ratemf_html($type, $value)
 {
   global $mybb;
 
-  if(empty($type) || empty($value)) {
+  if(empty($type)) {
     return;
   }
 

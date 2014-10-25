@@ -1,4 +1,4 @@
-#posts_container {
+.post_content {
   position: relative;
 }
 
@@ -26,6 +26,10 @@
 
 .ratemf_users_rating .ratemf_users_rating_show {
   font-size: 10px;
+}
+
+.ratemf_users_rating_show:first-of-type {
+  display: none;
 }
 
 .ratemf_users_rating .ratemf_users_rating_show:hover label {
