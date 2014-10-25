@@ -49,7 +49,6 @@ function ratemf_info()
     "authorsite" => "http://jung3o.com",
     "version" => "2.0.0",
     "compatibility" => "18*",
-    "guid" => ""
   );
 }
 
@@ -339,7 +338,7 @@ function ratemf_head()
      */
     eval("\$ratemf_head .= \"
 <script type='text/javascript'>
-  var ratemf_time = '". time() ."';
+  var ratemf_time = '". TIME_NOW ."';
 </script>\";");
 
     eval("\$ratemf_head .= \"\n<!-- end: ratemf_head -->\n\";");
@@ -359,7 +358,6 @@ function ratemf_postbit(&$post)
   $ratemf_rates = $cache->read('ratemf_rates');
 
   $rates_list = '';
-  $users_list = '';
 
   /**
    * Display the list of possible ratings for user
@@ -388,7 +386,8 @@ function ratemf_postbit(&$post)
       $rates_list .= ratemf_html("rates_list_item", array(
         'pid' => $post['pid'],
         'rid' => $rates['id'],
-        'image' => $rates['image']
+        'image' => $rates['image'],
+        'postbit' => $rates['postbit'],
       ));
     }
 
@@ -418,12 +417,64 @@ function ratemf_postbit(&$post)
     ORDER BY pbit.id DESC
   ");
 
+  $users_by_rate_id = array();
+  $rating_info_found = array();
+
   while($result = $db->fetch_array($query))
   {
-    var_dump($result);
+    if(!isset($users_by_rate_id[$result['rate_id']]))
+    {
+      $users_by_rate_id[$result['rate_id']] = array();
+      $rating_info_found[$result['rate_id']] = array(
+        'rate_postbit' => $result['rate_postbit'],
+        'rate_image' => $result['rate_image']
+      );
+    }
+
+    $users_by_rate_id[$result['rate_id']][] = array(
+      'rate_uid' => $result['rate_uid'],
+      'rate_username' =>$result['rate_username']
+    );
   }
 
-  $post['ratemf'] .= ratemf_html("users_list_wrapper", $users_list);
+  $rate_shrink = false;
+  if($settings['ratemf_shrink'] < count($rating_info_found)) {
+    $rate_shrink = true;
+  }
+
+  $users_rating = '';
+  $users_list = '';
+
+  foreach($users_by_rate_id as $rateId => $users_under_rate_id)
+  {
+
+    $rating_info_found[$rateId]['rate_count'] = count($users_under_rate_id);
+
+    $users_list_tmp = '';
+    foreach($users_under_rate_id as $listed_user_info)
+    {
+      $users_list_tmp .= ratemf_html("users_list_sub_item", $listed_user_info);
+    }
+
+    $rating_info_found[$rateId]['rate_usernames'] = $users_list_tmp;
+
+    $users_list .= ratemf_html("users_list_item", $rating_info_found[$rateId]);
+
+    if($rate_shrink) $rating_info_found[$rateId]['rate_postbit'] = '';
+
+    $users_rating .= ratemf_html("users_rating_item", $rating_info_found[$rateId]);
+  }
+
+  $users_list = ratemf_html("users_list_wrapper", $users_list);
+
+  if(!empty($users_rating))
+  {
+    $post['ratemf'] .= ratemf_html("users_rating_wrapper", array(
+     'users_rating' => $users_rating,
+     'post_id' => $post['pid'],
+     'users_list_wrapper' => $users_list
+    ));
+  }
 
   $post['ratemf'] = ratemf_html("wrapper", $post['ratemf']);
   return $post;
@@ -562,7 +613,7 @@ function ratemf_rate_action($postId, $rateId)
         if(!$settings['ratemf_double_delete']) return array("error" => "You have already rated.");
 
         $db->update_query("ratemf_postbit",
-          array("del_time" => date("Y-m-d H:i:s", time())),
+          array("del_time" => date("Y-m-d H:i:s", TIME_NOW)),
           "id=".$db->escape_string($result['id']));
 
         return array("success" => "Removed Rating");
@@ -583,7 +634,7 @@ function ratemf_rate_action($postId, $rateId)
     if(!$settings['ratemf_multirate'])
     {
       $db->update_query("ratemf_postbit",
-        array("del_time" => date("Y-m-d H:i:s", time())),
+        array("del_time" => date("Y-m-d H:i:s", TIME_NOW)),
         "pid='".$db->escape_string($post['id'])."'
         and uid='".$db->escape_string($mybb->user['uid'])."'");
     }
@@ -595,7 +646,7 @@ function ratemf_rate_action($postId, $rateId)
     "tid" => $db->escape_string($post['tid']), // Thread Id
     "puid" => $db->escape_string($post['uid']), // Post User Id
     "rid" => $db->escape_string($rateId), // Rating Id
-    "rate_time" => $db->escape_string(date("Y-m-d H:i:s", time())), // Rating Id
+    "rate_time" => $db->escape_string(date("Y-m-d H:i:s", TIME_NOW)), // Rating Id
     "ip" => $db->escape_string(get_ip()) // IP Address
   );
   $db->insert_query("ratemf_postbit", $insert);
@@ -653,6 +704,8 @@ function ratemf_refresh_action($threadId, $timestamp)
 
 function ratemf_html($type, $value)
 {
+  global $mybb;
+
   if(empty($type) || empty($value)) {
     return;
   }
@@ -660,26 +713,58 @@ function ratemf_html($type, $value)
   switch($type) {
     case("wrapper"):
       return '<div class="ratemf_postbit">'.$value.'</div>';
+
     case("rates_list_wrapper"):
       return '
-      <ul class="ratemf_list">
+      <ul class="ratemf_rates_list">
         '. $value. '
       </ul>';
+
     case("rates_list_item"):
       return '
-      <li onClick="javascript:ratemf_rate('.$value['pid'].', '. $value['rid'] .')">
-        <img src="images/rating/'.$value['image'].'">
+      <li title="'. $value['postbit'] .'" onClick="javascript:ratemf_rate('.$value['pid'].', '. $value['rid'] .')">
+        <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['image'].'">
       </li>';
-    case("users_list_wrapper"):
+
+    case("users_rating_wrapper"):
       return '
-      <ul class="ratemf_users">
-        '. $value .'
-        <li class="ratemf_users_show" onClick="javascript:showList();">
-          (<span>list</span>)
+      <ul class="ratemf_users_rating">
+        '. $value['users_rating'] .'
+        <li class="ratemf_users_rating_show">
+           <input id="ratemf_list_'. $value['post_id'] .'" type="checkbox">
+           <label for="ratemf_list_'. $value['post_id'] .'">(list)</label>
+           '. $value['users_list_wrapper'] .'
         </li>
       </ul>';
+
+    case("users_rating_item"):
+      return '
+      <li>
+        <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> '. $value['rate_postbit'].' x<strong>'. $value['rate_count'] .'</strong>
+      </li>';
+
+    case("users_list_wrapper"):
+      return '
+      <div class="ratemf_users_list_container">
+        '. $value .'
+      </div>';
+
     case("users_list_item"):
-      break;
+      return '
+      <ul class="ratemf_users_list">
+        <li class="ratemf_users_list_title">
+          <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> '. $value['rate_postbit'].' x<strong>'. $value['rate_count'] .'</strong>
+        </li>
+        '. $value['rate_usernames'] .'
+      </ul>';
+
+    case("users_list_sub_item"):
+      return '
+      <li>
+        <a href="'. $mybb->settings['bburl'] .'/member.php?action=profile&uid='. $value['rate_uid'] .'">
+          '. $value['rate_username'] .'
+        </a>
+      </li>';
   }
   return;
 }
