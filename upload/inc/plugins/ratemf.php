@@ -551,14 +551,11 @@ function ratemf_postbit(&$post)
 
   $users_list = ratemf_html("users_list_wrapper", $users_list);
 
-  if(!empty($users_rating))
-  {
-    $post['ratemf'] .= ratemf_html("users_rating_wrapper", array(
-     'users_rating' => $users_rating,
-     'post_id' => $post['pid'],
-     'users_list_wrapper' => $users_list
-    ));
-  }
+  $post['ratemf'] .= ratemf_html("users_rating_wrapper", array(
+   'users_rating' => $users_rating,
+   'post_id' => $post['pid'],
+   'users_list_wrapper' => $users_list
+  ));
 
   $post['ratemf'] = ratemf_html("wrapper", $post['ratemf']);
   return $post;
