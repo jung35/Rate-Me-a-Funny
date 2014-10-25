@@ -42,7 +42,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.2",
+    "version" => "2.0.3",
     "compatibility" => "18*",
   );
 }
@@ -744,7 +744,7 @@ function ratemf_refresh_action($threadId, $timestamp)
 {
   global $db, $settings, $cache;
 
-  $datetime = date("Y-m-d H:i:s", $timestamp);
+  $datetime = date("Y-m-d H:i:s", $timestamp+1);
   $result = Array();
 
   $query = $db->write_query("
@@ -806,7 +806,7 @@ function ratemf_refresh_action($threadId, $timestamp)
     WHERE
       pbit.tid='".$db->escape_string($threadId)."'
       AND
-      pbit.del_time > '".$db->escape_string($datetime)."'
+      pbit.del_time >= '".$db->escape_string($datetime)."'
   ");
   while($result[] = $db->fetch_array($query));
 
