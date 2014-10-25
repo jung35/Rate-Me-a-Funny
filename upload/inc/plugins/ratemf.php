@@ -114,14 +114,6 @@ function ratemf_install()
   );
 
   $ratemf_settings[] = array(
-      "name" => "ratemf_shrink",
-      "title" => "Shrink Rate List",
-      "description" => "How many different rates until the rate erases the names and show the numbers rated and icon? (default 5)",
-      "optionscode" => "text",
-      "value" => 5
-  );
-
-  $ratemf_settings[] = array(
       "name" => "ratemf_selfrate",
       "title" => "Allow Self Rate",
       "description" => "Allow users to rate themselves. (yes = allowed to rate self)",
@@ -324,24 +316,122 @@ function ratemf_uninstall()
  */
 function ratemf_head()
 {
-    global $db, $settings, $mybb, $ratemf_head;
+  global $db, $settings, $mybb, $ratemf_head;
 
-    eval("\$ratemf_head = \"\n\n<!-- start: ratemf_head -->\";");
+  eval("\$ratemf_head = \"\n\n<!-- start: ratemf_head -->\";");
 
-    /**
-     * Display Stylesheet from inc/plugins/ratemf
-     */
-    eval("\$ratemf_head .= \"\n<link type='text/css' rel='stylesheet' href='inc/plugins/ratemf/ratemf.css' />\";");
+  /**
+   * Display Stylesheet from inc/plugins/ratemf
+   */
+  eval("\$ratemf_head .= \"\n<link type='text/css' rel='stylesheet' href='inc/plugins/ratemf/ratemf.css' />\";");
 
-    /**
-     * Set base time for ajax check
-     */
-    eval("\$ratemf_head .= \"
+  /**
+   * Set base time for ajax check
+   */
+  eval("\$ratemf_head .= \"
 <script type='text/javascript'>
-  var ratemf_time = '". TIME_NOW ."';
+  var ratemf_time = '". TIME_NOW ."',
+  tid = '". $mybb->get_input('tid') ."';
+
+  function ratemf_rate(pid, rid) {
+    jQuery.ajax({
+      url: '". $mybb->settings['bburl'] ."/xmlhttp.php',
+      type: 'post',
+      data: {
+        plugin: 'ratemf',
+        my_post_key: my_post_key,
+        type: 'rate',
+        pid: pid,
+        rid: rid
+      },
+      beforeSend: function() { jQuery('#post_'+pid).find('.ratemf_rates_list').html('Rating...'); },
+      success: function(data) {
+        if(typeof data.success == 'string') {
+          jQuery('#post_'+pid).find('.ratemf_rates_list').html(data.success);
+          ratemf_refresh();
+        } else {
+          jQuery('#post_'+pid).find('.ratemf_rates_list').html(data.error);
+        }
+      },
+      error: function() {
+        jQuery('#post_'+pid).find('.ratemf_rates_list').html('error');
+      }
+    });
+  }
+
+  setInterval(ratemf_refresh, 1000*". $settings['ratemf_ajax_refresh'] .");
+
+  function ratemf_refresh() {
+    jQuery.ajax({
+      url: '". $mybb->settings['bburl'] ."/xmlhttp.php',
+      type: 'post',
+      data: {
+        plugin: 'ratemf',
+        my_post_key: my_post_key,
+        type: 'refresh',
+        tid: tid,
+        timestamp: ratemf_time
+      },
+      success: function(data) {
+        if(typeof data.time == 'number') {
+          ratemf_time = data.time;
+
+          delete data.time;
+          jQuery.each(data, function(k, value) {
+
+            var rate_post_element = jQuery('#post_'+value.post_id);
+            var rate_rating_element = rate_post_element.find('.ratemf_users_rating_rate_id_'+value.rate_id);
+            var rate_list_element = rate_post_element.find('.ratemf_users_list_rate_id_'+value.rate_id);
+
+            if(typeof value.del_time == 'string') {
+              var remove_rating_count = parseInt(rate_rating_element.find('strong').text(), 10)-1;
+
+              if(remove_rating_count == 0) {
+                rate_rating_element.remove();
+                rate_list_element.remove();
+              } else {
+                rate_rating_element = rate_rating_element.find('strong');
+                rate_rating_element.html(remove_rating_count);
+
+                rate_list_element.find('.ratemf_users_list_id_'+value.postbit_uid).remove();
+                rate_list_element.find('.ratemf_users_list_title').find('strong').html(remove_rating_count);
+              }
+            } else {
+              if(rate_rating_element.length > 0) {
+                rate_rating_element = rate_rating_element.find('strong');
+                rate_rating_element.html(parseInt(rate_rating_element.text() ,10)+1);
+
+                rate_list_element.find('.ratemf_users_list_title').find('strong').html(parseInt(rate_list_element.find('.ratemf_users_list_title').find('strong').text(),10)+1);
+              } else {
+                rate_post_element.find('.ratemf_users_rating').prepend(' \\
+                  <li title=\\\"'+value.rate_postbit+'\\\" class=\\\"ratemf_users_rating_rate_id_'+value.rate_id+'\\\"> \\
+                    <img src=\\\"". $mybb->settings['bburl'] ."/images/rating/'+value.rate_image+'\\\"> x<strong>1</strong> \\
+                  </li>');
+
+                rate_post_element.find('.ratemf_users_list_container').prepend(' \\
+                  <ul class=\\\"ratemf_users_list ratemf_users_list_rate_id_'+value.rate_id+'\\\"> \\
+                    <li title=\\\"'+value.rate_postbit+'\\\" class=\\\"ratemf_users_list_title\\\"> \\
+                      <img src=\\\"". $mybb->settings['bburl'] ."/images/rating/'+value.rate_image+'\\\"> x<strong>1</strong> \\
+                    </li> \\
+                  </ul>');
+              }
+
+              rate_post_element.find('.ratemf_users_list_container').find('.ratemf_users_list_rate_id_'+value.rate_id).append(' \\
+                <li class=\\\"ratemf_users_list_id_'+value.postbit_uid+'\\\"> \\
+                  <a href=\\\"". $mybb->settings['bburl'] ."/member.php?action=profile&uid='+value.postbit_uid+'\\\"> \\
+                    '+value.postbit_username+' \\
+                  </a> \\
+                </li>');
+            }
+          });
+        }
+      }
+    });
+
+  }
 </script>\";");
 
-    eval("\$ratemf_head .= \"\n<!-- end: ratemf_head -->\n\";");
+  eval("\$ratemf_head .= \"\n<!-- end: ratemf_head -->\n\";");
 }
 
 /**
@@ -427,7 +517,8 @@ function ratemf_postbit(&$post)
       $users_by_rate_id[$result['rate_id']] = array();
       $rating_info_found[$result['rate_id']] = array(
         'rate_postbit' => $result['rate_postbit'],
-        'rate_image' => $result['rate_image']
+        'rate_image' => $result['rate_image'],
+        'rate_id' => $result['rate_id']
       );
     }
 
@@ -435,11 +526,6 @@ function ratemf_postbit(&$post)
       'rate_uid' => $result['rate_uid'],
       'rate_username' =>$result['rate_username']
     );
-  }
-
-  $rate_shrink = false;
-  if($settings['ratemf_shrink'] < count($rating_info_found)) {
-    $rate_shrink = true;
   }
 
   $users_rating = '';
@@ -459,8 +545,6 @@ function ratemf_postbit(&$post)
     $rating_info_found[$rateId]['rate_usernames'] = $users_list_tmp;
 
     $users_list .= ratemf_html("users_list_item", $rating_info_found[$rateId]);
-
-    if($rate_shrink) $rating_info_found[$rateId]['rate_postbit'] = '';
 
     $users_rating .= ratemf_html("users_rating_item", $rating_info_found[$rateId]);
   }
@@ -635,8 +719,9 @@ function ratemf_rate_action($postId, $rateId)
     {
       $db->update_query("ratemf_postbit",
         array("del_time" => date("Y-m-d H:i:s", TIME_NOW)),
-        "pid='".$db->escape_string($post['id'])."'
-        and uid='".$db->escape_string($mybb->user['uid'])."'");
+        "pid='".$db->escape_string($post['pid'])."'
+        and uid='".$db->escape_string($mybb->user['uid'])."'
+        and del_time IS NULL");
     }
   }
 
@@ -659,9 +744,41 @@ function ratemf_refresh_action($threadId, $timestamp)
 {
   global $db, $settings, $cache;
 
-  $datetime = date("Y-m-d H:i:s", $timestamp);
+  $datetime = date("Y-m-d H:i:s", $timestamp + 1);
+  $result = Array();
 
   $query = $db->write_query("
+    SELECT
+      p.pid AS `post_id`,
+      pbit.uid AS `postbit_uid`,
+      u.username AS `postbit_username`,
+      pbit.rid AS `rate_id`,
+      rates.postbit AS `rate_postbit`,
+      rates.image AS `rate_image`,
+      pbit.rate_time AS `rate_time`
+    FROM " . TABLE_PREFIX . "ratemf_postbit pbit
+    LEFT JOIN
+      " . TABLE_PREFIX . "posts p
+      ON
+        p.tid = pbit.tid
+        AND
+        p.pid = pbit.pid
+    LEFT JOIN
+      ". TABLE_PREFIX ."users u
+      ON
+        u.uid = pbit.uid
+    LEFT JOIN
+      ". TABLE_PREFIX ."ratemf_rates rates
+      ON
+        rates.id = pbit.rid
+    WHERE
+      pbit.tid='".$db->escape_string($threadId)."'
+      AND
+      pbit.rate_time >= '".$db->escape_string($datetime)."'
+  ");
+  while($result[] = $db->fetch_array($query));
+
+    $query = $db->write_query("
     SELECT
       p.pid AS `post_id`,
       pbit.uid AS `postbit_uid`,
@@ -689,17 +806,17 @@ function ratemf_refresh_action($threadId, $timestamp)
     WHERE
       pbit.tid='".$db->escape_string($threadId)."'
       AND
-      (
-        pbit.rate_time > '".$db->escape_string($datetime)."'
-        OR
-        pbit.del_time > '".$db->escape_string($datetime)."'
-      )
+      pbit.del_time >= '".$db->escape_string($datetime)."'
   ");
-
-  $result = Array();
   while($result[] = $db->fetch_array($query));
 
-  return array_filter($result);
+  $result = array_filter($result);
+
+  if(count($result) > 0 && !is_null($result)) {
+    $result['time'] = TIME_NOW;
+  }
+
+  return $result;
 }
 
 function ratemf_html($type, $value)
@@ -739,8 +856,8 @@ function ratemf_html($type, $value)
 
     case("users_rating_item"):
       return '
-      <li>
-        <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> '. $value['rate_postbit'].' x<strong>'. $value['rate_count'] .'</strong>
+      <li title="'. $value['rate_postbit'].'" class="ratemf_users_rating_rate_id_'.$value['rate_id'].'">
+        <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> x<strong>'. $value['rate_count'] .'</strong>
       </li>';
 
     case("users_list_wrapper"):
@@ -751,16 +868,16 @@ function ratemf_html($type, $value)
 
     case("users_list_item"):
       return '
-      <ul class="ratemf_users_list">
-        <li class="ratemf_users_list_title">
-          <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> '. $value['rate_postbit'].' x<strong>'. $value['rate_count'] .'</strong>
+      <ul class="ratemf_users_list ratemf_users_list_rate_id_'.$value['rate_id'].'">
+        <li title="'. $value['rate_postbit'].'" class="ratemf_users_list_title">
+          <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> x<strong>'. $value['rate_count'] .'</strong>
         </li>
         '. $value['rate_usernames'] .'
       </ul>';
 
     case("users_list_sub_item"):
       return '
-      <li>
+      <li class="ratemf_users_list_id_'. $value['rate_uid'] .'">
         <a href="'. $mybb->settings['bburl'] .'/member.php?action=profile&uid='. $value['rate_uid'] .'">
           '. $value['rate_username'] .'
         </a>

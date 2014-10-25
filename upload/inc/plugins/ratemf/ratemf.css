@@ -1,38 +1,100 @@
-.ratemf_users {
+#posts_container {
+  position: relative;
+}
+
+.ratemf_postbit {
+  margin: 10px 0 0;
+}
+
+.ratemf_users_rating {
   width: auto;
-  overflow: auto;
+  overflow: none;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.ratemf_users li {
+.ratemf_users_rating li {
+  padding: 0 5px 0 0;
   display: inline-block;
+  font-size: 11px;
 }
 
-.ratemf_users .ratemf_users_show {
+.ratemf_users_rating li img {
+  vertical-align: -3px;
+}
+
+.ratemf_users_rating .ratemf_users_rating_show {
   font-size: 10px;
+}
+
+.ratemf_users_rating .ratemf_users_rating_show:hover label {
+  text-decoration: underline;
   cursor: pointer;
 }
 
-.ratemf_users .ratemf_users_show:hover span {
-  text-decoration: underline;
+.ratemf_users_rating_show input {
+  display: none;
 }
 
-.ratemf_list {
+.ratemf_users_rating_show input:checked + label {
+  font-weight: bold;
+}
+
+.ratemf_users_rating_show input:checked + label + .ratemf_users_list_container {
+  display: block;
+}
+
+.ratemf_users_rating_show input + label + .ratemf_users_list_container {
+  display: none;
+}
+
+.ratemf_rates_list {
   float:right;
   list-style: none;
   margin: 0 -7px 0 0;
   padding: 0;
 }
 
-.ratemf_list li {
+.ratemf_rates_list li {
   display: inline-block;
-  opacity: 0.5;
-  margin: 3px 3px 5px;
+  opacity: 0;
+  margin: 3px 2px 5px;
   cursor: pointer;
 }
 
-.ratemf_list li:hover {
-  opacity: 0.8;
+.post:hover .ratemf_rates_list li {
+  opacity: 0.3;
+}
+
+.ratemf_rates_list li:hover {
+  opacity: 1 !important;
+}
+
+.ratemf_users_list_container {
+  margin-top: 5px;
+  position: absolute;
+  left: 0;
+  background: #fefefe;
+  border: 1px solid #777;
+  padding: 10px;
+}
+
+.ratemf_users_list {
+  display: inline-block;
+  vertical-align: top;
+  padding: 0 0 5px;
+  margin: 0;
+  border: 1px dashed #777;
+}
+
+.ratemf_users_list_title {
+  padding: 5px 10px !important;
+  margin-bottom: 5px ;
+  border-bottom: 1px dashed #777;
+}
+
+.ratemf_users_list li {
+  padding: 0 10px;
+  display: block;
 }
