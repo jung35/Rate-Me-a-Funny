@@ -16,7 +16,7 @@ function ratemf_rates_cache() {
     $cache->update('ratemf_rates', $rates);
 }
 
-$act = $mybb->input['action'];
+$action = $mybb->get_input('action');
 $sub_tabs = array();
 $sub_tabs['ratemf'] = array(
   'title' => "Home",
@@ -30,7 +30,7 @@ $sub_tabs['ratemf_add'] = array(
 );
 $page->add_breadcrumb_item("Rate Me a Funny", "index.php?module=config-ratemf");
 
-if(!$act)
+if(!$action && empty($action))
 {
 
   $page->output_header("Rate Me a Funny");
@@ -63,7 +63,7 @@ if(!$act)
 
   $page->output_footer();
 
-} elseif($act == 'new') {
+} elseif($action == 'new') {
 
   $forum['multiple'] = 1;
 
@@ -93,7 +93,7 @@ if(!$act)
 
   $page->output_footer();
 
-} elseif($act == 'disporder') {
+} elseif($action == 'disporder') {
   if($_POST['display'])
   {
     foreach($_POST['display'] as $id => $newdisplay)
@@ -106,27 +106,27 @@ if(!$act)
     ratemf_rates_cache();
   }
   admin_redirect("index.php?module=config-ratemf");
-} elseif($act == 'delete') {
+} elseif($action == 'delete') {
   if($_GET['id'])
   {
-    $query = $db->simple_select("ratemf_rates", "*", "id='".$_GET['id']."'");
+    $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($_GET['id'])."'");
     $name = $db->fetch_field($query, "name");
     $page->output_confirm_action("index.php?module=config-ratemf&amp;action=do_delete&amp;id=".$_GET['id'], "Are you sure you want to delete \"".$name."\"");
   }
-} elseif($act == 'do_delete') {
+} elseif($action == 'do_delete') {
   if($_POST)
   {
     if(!$_POST['no'])
     {
       if($_GET['id'])
       {
-        $db->delete_query("ratemf_rates", "id='".$_GET['id']."'");
+        $db->delete_query("ratemf_rates", "id='".$db->escape_string($_GET['id'])."'");
       }
     }
     ratemf_rates_cache();
   }
   admin_redirect("index.php?module=config-ratemf");
-} elseif($act == 'new_submit') {
+} elseif($action == 'new_submit') {
   if($_POST) {
     if(isset($_POST['name']) &&
       isset($_POST['postbit']) &&
@@ -190,10 +190,10 @@ if(!$act)
     }
   }
   admin_redirect("index.php?module=config-ratemf");
-} elseif($act == 'edit') {
+} elseif($action == 'edit') {
   if($_GET['id'])
   {
-    $query = $db->simple_select("ratemf", "*", "id=".$_GET['id']);
+    $query = $db->simple_select("ratemf_rates", "*", "id=".$db->escape_string($_GET['id']));
 
     while($result=$db->fetch_array($query))
     {
@@ -233,7 +233,7 @@ if(!$act)
   } else {
   admin_redirect("index.php?module=config-ratemf");
   }
-} elseif($act == 'do_edit') {
+} elseif($action == 'do_edit') {
   if($_GET['id'])
   {
     if($_POST)
@@ -280,7 +280,7 @@ if(!$act)
             $forum_use = substr($fid,1);
           }
 
-          $query = $db->simple_select("ratemf", "*", "id='".$_GET['id']."'");
+          $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($_GET['id'])."'");
           $disp = $db->fetch_field($query, "disporder");
 
           $insert = array(
@@ -292,7 +292,7 @@ if(!$act)
             "selected_forum_use" => $db->escape_string($forum_use),
             "disporder" => $disp
           );
-          $db->update_query("ratemf_rates", $insert,"id=".$_GET['id']);
+          $db->update_query("ratemf_rates", $insert,"id=".$db->escape_string($_GET['id']));
           ratemf_rates_cache();
         } else {
           admin_redirect("index.php?module=config-ratemf&amp;action=new");
