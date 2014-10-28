@@ -15,9 +15,11 @@ $plugins->add_hook("postbit_announcement", "ratemf_postbit");
 
 $plugins->add_hook("showthread_start","ratemf_head");
 
-$plugins->add_hook("admin_config_permissions ", "ratemf_cfg_permission");
-
 $plugins->add_hook("xmlhttp", "ratemf_ajax");
+
+$plugins->add_hook("admin_config_menu", "ratemf_cfg_menu");
+$plugins->add_hook("admin_config_action_handler", "ratemf_cfg_page");
+$plugins->add_hook("admin_config_permissions ", "ratemf_cfg_permission");
 
 
 /**
@@ -556,6 +558,28 @@ function ratemf_postbit(&$post)
 
   $post['ratemf'] = ratemf_html("wrapper", $post['ratemf']);
   return $post;
+}
+
+/**
+ * Make it show up on menu of admin page
+ * @param  array menu
+ * @return array menu
+ */
+function ratemf_cfg_menu($sub_menu)
+{
+    $sub_menu[] = array("id" => "ratemf", "title" => "Rate Me a Funny", "link" => "index.php?module=config-ratemf");
+    return $sub_menu;
+}
+
+/**
+ * Show the custom made page for plugin of admin page
+ * @param  array actions
+ * @return array actions
+ */
+function ratemf_cfg_page($actions)
+{
+    $actions['ratemf'] = array('active' => 'ratemf', 'file' => 'ratemf.php');
+    return $actions;
 }
 
 /**
