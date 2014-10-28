@@ -42,7 +42,7 @@ if(!$action && empty($action))
   $table->construct_header("Order");
   $table->construct_header("Controls", array("class" => "align_center", "colspan" => 2));
 
-  $query = $db->simple_select("ratemf_rates", "*", "", array('order_by' => 'disporder'));
+  $query = $db->simple_select("ratemf_rates", "*", "del_time IS NULL", array('order_by' => 'disporder'));
 
   $form = new Form("index.php?module=config-ratemf&amp;action=disporder", "post", "", 1);
 
@@ -120,7 +120,9 @@ if(!$action && empty($action))
     {
       if($_GET['id'])
       {
-        $db->delete_query("ratemf_rates", "id='".$db->escape_string($_GET['id'])."'");
+        $db->update_query("ratemf_rates",
+          array("del_time" => date("Y-m-d H:i:s", TIME_NOW)),
+          "id=".$db->escape_string($_GET['id']));
       }
     }
     ratemf_rates_cache();

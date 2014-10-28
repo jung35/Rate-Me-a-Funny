@@ -44,7 +44,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.3",
+    "version" => "2.0.4b",
     "compatibility" => "18*",
   );
 }
@@ -182,6 +182,7 @@ function ratemf_install()
         `selected_ranks_use` VARCHAR(255) NULL ,
         `selected_ranks_see` VARCHAR(255) NULL ,
         `selected_forum_use` VARCHAR(255) NULL ,
+        `del_time` DATETIME NULL,
         `disporder` SMALLINT(5) NOT NULL
       ) ENGINE = MYISAM ;
     ");
@@ -461,6 +462,10 @@ function ratemf_postbit(&$post)
 
     foreach($ratemf_rates_reordered as $rates)
     {
+      if($rates['del_time'] != null)
+      {
+        continue;
+      }
       $ranks_use = array_filter(explode(",", $rates['selected_ranks_use']));
       $ranks_see = array_filter(explode(",", $rates['selected_ranks_see']));
       $forum_use = array_filter(explode(",", $rates['selected_forum_use']));
@@ -929,7 +934,7 @@ function ratemf_find_rates_by($type, $value)
   $ratemf_rates = $cache->read('ratemf_rates');
 
   foreach($ratemf_rates as $key => $rates) {
-    if($rates[$type] == $value) {
+    if($rates[$type] == $value && $rates['del_time'] == null) {
       return $ratemf_rates[$key];
     }
   }
