@@ -14,6 +14,9 @@ $plugins->add_hook("postbit_pm", "ratemf_postbit");
 $plugins->add_hook("postbit_announcement", "ratemf_postbit");
 
 $plugins->add_hook("showthread_start","ratemf_head");
+$plugins->add_hook("forumdisplay_thread", "ratemf_thread");
+
+$plugins->add_hook("member_profile_start", "ratemf_profile_view");
 
 $plugins->add_hook("xmlhttp", "ratemf_ajax");
 
@@ -44,7 +47,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.4b",
+    "version" => "2.0.5",
     "compatibility" => "18*",
   );
 }
@@ -82,7 +85,7 @@ function ratemf_install()
       "name" => "ratemf_disabled_group",
       "title" => "Groups that cannot use this. (UNIVERSAL)",
       "description" => "Type in all the groups that you don't want them using this (Seperated by comma (,))",
-      "optionscode" => "text",
+      "optionscode" => "groupselect",
       "value" => "7,1,5"
   );
 
@@ -90,7 +93,7 @@ function ratemf_install()
       "name" => "ratemf_ajax_refresh",
       "title" => "Ajax refresh",
       "description" => "How long till the data gets refreshed by ajax? (in seconds)",
-      "optionscode" => "text",
+      "optionscode" => "numeric",
       "value" => "5"
   );
 
@@ -116,6 +119,14 @@ function ratemf_install()
       "description" => "Allow users to rate themselves. (yes = allowed to rate self)",
       "optionscode" => "yesno",
       "value" => 1
+  );
+
+  $ratemf_settings[] = array(
+      "name" => "ratemf_op_thread_show",
+      "title" => "Show top OP rating on thread",
+      "description" => "Show the minimum requirement for top rating to show. (0 = disabled)",
+      "optionscode" => "numeric",
+      "value" => 10
   );
 
   foreach($ratemf_settings as $key => $setting)
@@ -254,8 +265,20 @@ function ratemf_activate()
 {
   require_once MYBB_ROOT . "inc/adminfunctions_templates.php";
 
+  /**
+   * Display the ratings on the postbits
+   */
   find_replace_templatesets("postbit", "#".preg_quote('{$post[\'iplogged\']}')."#i", '{$post[\'iplogged\']}{$post[\'ratemf\']}');
   find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'iplogged\']}')."#i", '{$post[\'iplogged\']}{$post[\'ratemf\']}');
+
+  /**
+   * Display the top rating on the thread display for OP
+   */
+  find_replace_templatesets("forumdisplay_thread", "#".preg_quote('{$attachment_count}')."#i", '{$thread[\'ratemf\']}{$attachment_count}');
+
+  /**
+   * Include all the assets (JS / CSS) on the post page
+   */
   find_replace_templatesets("showthread", "#".preg_quote('{$headerinclude}')."#i", '{$headerinclude}{$ratemf_head}');
 }
 
@@ -280,6 +303,9 @@ function ratemf_deactivate()
 
   find_replace_templatesets("postbit", "#".preg_quote('{$post[\'ratemf\']}')."#i", '', 0);
   find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'ratemf\']}')."#i", '', 0);
+
+  find_replace_templatesets("forumdisplay_thread", "#".preg_quote('{$thread[\'ratemf\']}')."#i", '', 0);
+
   find_replace_templatesets("showthread", "#".preg_quote('{$ratemf_head}')."#i", '', 0);
 }
 
@@ -299,7 +325,8 @@ function ratemf_uninstall()
     "ratemf_ajax",
     "ratemf_ajax_refresh",
     "ratemf_shrink",
-    "ratemf_selfrate"
+    "ratemf_selfrate",
+    "ratemf_op_thread_show"
   );
   rebuild_settings();
 
@@ -940,4 +967,50 @@ function ratemf_find_rates_by($type, $value)
   }
 
   return false;
+}
+
+/**
+ * Show the top rating that was rated on the
+ * opening post of the thread using settings
+ * @return void
+ */
+function ratemf_thread()
+{
+  global $thread, $cache, $db;
+  $ratemf_rates = $cache->read('ratemf_rates');
+
+  $postId = $thread['firstpost'];
+  if(!$settings['ratemf_op_thread_show']) return;
+
+  $query = $db->write_query("
+  SELECT
+    p.pid AS `post_id`,
+    pbit.uid AS `postbit_uid`,
+    u.username AS `postbit_username`,
+    pbit.rid AS `rate_id`,
+    rates.postbit AS `rate_postbit`,
+    rates.image AS `rate_image`,
+    pbit.rate_time AS `rate_time`,
+    pbit.del_time AS `del_time`
+  FROM " . TABLE_PREFIX . "ratemf_postbit pbit
+  LEFT JOIN
+    ". TABLE_PREFIX ."posts p
+    ON
+      p.pid = pbit.pid
+  LEFT JOIN
+    ". TABLE_PREFIX ."ratemf_rates rates
+    ON
+      rates.id = pbit.rid
+  WHERE
+    pbit.pid='".$db->escape_string($postId)."'
+");
+}
+
+/**
+ * Based on settings, display ratings on user's profile page
+ * @return void
+ */
+function ratemf_profile_view()
+{
+
 }
