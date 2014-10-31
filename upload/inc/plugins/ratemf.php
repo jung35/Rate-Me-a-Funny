@@ -38,7 +38,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.5",
+    "version" => "2.0.5b",
     "compatibility" => "18*",
   );
 }
@@ -998,7 +998,9 @@ function ratemf_thread()
  */
 function ratemf_profile_view()
 {
-  global $templates, $db, $theme, $mybb, $ratemf_profile, $cache;
+  global $templates, $db, $theme, $mybb, $ratemf_profile, $cache, $settings;
+
+  if(!$settings['ratemf_show_rating_profile']) return;
 
   $ratemf_rates = $cache->read('ratemf_rates');
   $ratemf_rates_reordered = $ratemf_rates;
