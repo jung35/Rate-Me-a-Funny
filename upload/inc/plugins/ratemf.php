@@ -34,7 +34,7 @@ function ratemf_info()
 {
   return array(
     "name" => "Rate Me a Funny",
-    "description" => "This plugin lets the user rate someone a smile (icon) per postbit.
+    "description" => "This plugin lets the user rate someone a smile (icon) per postbit. (MyBB: http://community.mybb.com/mods.php?action=view&pid=275)
     <!--
       <br>
       <b>
@@ -269,12 +269,12 @@ function ratemf_install()
   $template = '
 <table border="0" cellspacing="{$theme[\'borderwidth\']}" cellpadding="{$theme[\'tablespace\']}" width="100%" class="tborder">
   <tr>
-    <td colspan="4" class="thead"><strong>{$mybb->user[\'username\']}\'s Rating Statistics</strong></td>
+    <td colspan="5" class="thead"><strong>{$mybb->user[\'username\']}\'s Rating Statistics</strong></td>
   </tr>
   <tr>
-    <th class="trow1">Rating</th>
-    <th class="trow1"># of Times Used</th>
-    <th class="trow1"># of Times Rated</th>
+    <th colspan="2" class="trow1">Rating</th>
+    <th width="50px" class="trow1">x Used</th>
+    <th width="50px" class="trow1">x Rated</th>
     <th class="trow1">Most Rated On Post</th>
   </tr>
   {$ratemf_profile_list}
@@ -923,6 +923,216 @@ function ratemf_refresh_action($threadId, $timestamp)
 }
 
 /**
+ * Look for value in ratemf_rates 2D array
+ * @param  string index of array to look in
+ * @param  string value of the array to compare
+ * @return array  array of the rating found
+ */
+function ratemf_find_rates_by($type, $value, $show_deleted = false)
+{
+  global $cache;
+  $ratemf_rates = $cache->read('ratemf_rates');
+
+  foreach($ratemf_rates as $key => $rates) {
+    if($rates[$type] == $value && ($show_deleted || $rates['del_time'] == null)) {
+      return $ratemf_rates[$key];
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Show the top rating that was rated on the
+ * opening post of the thread using settings
+ * @return void
+ */
+function ratemf_thread()
+{
+  global $thread, $cache, $db, $settings, $mybb;
+  $ratemf_rates = $cache->read('ratemf_rates');
+
+  $postId = $thread['firstpost'];
+  if(!$settings['ratemf_op_thread_show']) return;
+
+  $query = $db->write_query("
+  SELECT
+    p.pid AS `post_id`,
+    pbit.uid AS `postbit_uid`,
+    pbit.rid AS `rate_id`,
+    rates.postbit AS `rate_postbit`,
+    rates.image AS `rate_image`
+  FROM " . TABLE_PREFIX . "ratemf_postbit pbit
+  LEFT JOIN
+    ". TABLE_PREFIX ."posts p
+    ON
+      p.pid = pbit.pid
+  LEFT JOIN
+    ". TABLE_PREFIX ."ratemf_rates rates
+    ON
+      rates.id = pbit.rid
+  WHERE
+    pbit.pid='".$db->escape_string($postId)."'
+    and pbit.del_time IS NULL
+  ");
+
+  $ratemf_sorted_by_rating = array();
+
+  while($result = $db->fetch_array($query))
+  {
+    if(!isset($ratemf_sorted_by_rating[$result['rate_id']])) {
+      $ratemf_sorted_by_rating[$result['rate_id']] = 0;
+    }
+    $ratemf_sorted_by_rating[$result['rate_id']]++;
+  }
+
+  if(count($ratemf_sorted_by_rating) == 0) return;
+
+  $maxRateValue = max($ratemf_sorted_by_rating);
+
+  if($maxRateValue < $settings['ratemf_op_thread_show']) return;
+
+  $maxRateArrayKey = array_keys($ratemf_sorted_by_rating, $maxRateValue);
+  $maxRateImage = ratemf_find_rates_by('id', $maxRateArrayKey[0]);
+  $maxRateImage = $maxRateImage['image'];
+
+  $thread['ratemf'] = ratemf_html("thread_simple_image", array(
+  'rate_image' => $maxRateImage,
+  'rate_count' => $maxRateValue));
+
+}
+
+/**
+ * Based on settings, display ratings on user's profile page
+ * @return void
+ */
+function ratemf_profile_view()
+{
+  global $templates, $db, $theme, $mybb, $ratemf_profile, $cache;
+
+  $ratemf_rates = $cache->read('ratemf_rates');
+  $ratemf_rates_reordered = $ratemf_rates;
+
+  usort($ratemf_rates_reordered, function($a, $b) {
+    return $a['disporder'] - $b['disporder'];
+  });
+
+  $query = $db->write_query("
+  SELECT
+    pbit.pid AS `postbit_pid`,
+    pbit.puid AS `postbit_puid`,
+    pbit.uid AS `postbit_uid`,
+    pbit.rid AS `rate_id`,
+    rates.postbit AS `rate_postbit`,
+    rates.image AS `rate_image`,
+    pbit.tid AS `thread_tid`,
+    tr.subject AS `thread_title`
+  FROM " . TABLE_PREFIX . "ratemf_postbit pbit
+  LEFT JOIN
+    ". TABLE_PREFIX ."threads tr
+    ON
+      tr.tid = pbit.tid
+  LEFT JOIN
+    ". TABLE_PREFIX ."ratemf_rates rates
+    ON
+      rates.id = pbit.rid
+  WHERE
+    (
+      pbit.puid='".$db->escape_string($mybb->user['uid'])."'
+      or
+      pbit.uid='".$db->escape_string($mybb->user['uid'])."'
+    )
+    and pbit.del_time IS NULL
+  ");
+
+  $times_rated = array();
+  $times_used_rating = array();
+  $most_rated_post = array();
+
+  $store_thread_by_pid = array();
+
+  while($result = $db->fetch_array($query))
+  {
+    if($result['postbit_puid'] == $mybb->user['uid'])
+    {
+      if(!isset($times_rated[$result['rate_id']]))
+      {
+        $times_rated[$result['rate_id']] = 0;
+      }
+
+      $times_rated[$result['rate_id']]++;
+
+      if(!isset($most_rated_post[$result['rate_id']]))
+      {
+        $most_rated_post[$result['rate_id']] = array();
+      }
+
+      if(!isset($most_rated_post[$result['rate_id']][$result['postbit_pid']]))
+      {
+        $most_rated_post[$result['rate_id']][$result['postbit_pid']] = 0;
+      }
+
+      $most_rated_post[$result['rate_id']][$result['postbit_pid']]++;
+
+      if(!isset($store_thread_by_pid[$result['postbit_pid']])) {
+        $store_thread_by_pid[$result['postbit_pid']] = array(
+          'thread_title' => $result['thread_title'],
+          'thread_tid' => $result['thread_tid']
+        );
+      }
+    }
+
+    if($result['postbit_uid'] == $mybb->user['uid'])
+    {
+      if(!isset($times_used_rating[$result['rate_id']]))
+      {
+        $times_used_rating[$result['rate_id']] = 0;
+      }
+
+      $times_used_rating[$result['rate_id']]++;
+    }
+  }
+
+  $ratemf_profile_list = '';
+  $trow_num = 1;
+
+  foreach($ratemf_rates_reordered as $rating)
+  {
+
+    $highest_rated_post = max($most_rated_post[$rating['id']]);
+    $highest_rated_post_id = array_keys($most_rated_post[$rating['id']], $highest_rated_post);
+    $highest_rated_post_id = $highest_rated_post_id[0];
+
+    $ratemf_profile_list .= '
+    <tr>
+      <td width="16px" class="trow'. $trow_num .'">
+        <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$rating['image'].'">
+      </td>
+      <td class="trow'. $trow_num .'">
+        '. $rating['postbit'] .'
+      </td>
+      <td style="text-align: center;" class="trow'. $trow_num .'">
+        '. $times_used_rating[$rating['id']] .'
+      </td>
+      <td style="text-align: center;" class="trow'. $trow_num .'">
+        '. $times_rated[$rating['id']] .'
+      </td>
+      <td style="max-width:450px; overflow:hidden;" class="trow'. $trow_num .'">
+        "<a href="'. $mybb->settings['bburl'] .'/showthread.php?tid='. $store_thread_by_pid[$highest_rated_post_id]['thread_tid'] .'&pid='. $highest_rated_post_id .'#pid'. $highest_rated_post_id .'" target="_blank"><!--
+          -->'. $store_thread_by_pid[$highest_rated_post_id]['thread_title'] .'<!--
+        --></a>"
+      </td>
+    </tr>
+    ';
+
+    $trow_num = $trow_num == 1? 2 : 1;
+  }
+
+  eval('$ratemf_profile  = "' . $templates->get('ratemf_member_profile') . '";');
+}
+
+
+/**
  * Handles all the html for the php-end
  * (this is again repeated for the javascript part above)
  * @param  string title of the html string
@@ -999,95 +1209,5 @@ function ratemf_html($type, $value)
         <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> x<strong>'. $value['rate_count'] .'</strong>
       </div>';
   }
-
-}
-
-/**
- * Look for value in ratemf_rates 2D array
- * @param  string index of array to look in
- * @param  string value of the array to compare
- * @return array  array of the rating found
- */
-function ratemf_find_rates_by($type, $value)
-{
-  global $cache;
-  $ratemf_rates = $cache->read('ratemf_rates');
-
-  foreach($ratemf_rates as $key => $rates) {
-    if($rates[$type] == $value && $rates['del_time'] == null) {
-      return $ratemf_rates[$key];
-    }
-  }
-
-  return false;
-}
-
-/**
- * Show the top rating that was rated on the
- * opening post of the thread using settings
- * @return void
- */
-function ratemf_thread()
-{
-  global $thread, $cache, $db, $settings, $mybb;
-  $ratemf_rates = $cache->read('ratemf_rates');
-
-  $postId = $thread['firstpost'];
-  if(!$settings['ratemf_op_thread_show']) return;
-
-  $query = $db->write_query("
-  SELECT
-    p.pid AS `post_id`,
-    pbit.uid AS `postbit_uid`,
-    pbit.rid AS `rate_id`,
-    rates.postbit AS `rate_postbit`,
-    rates.image AS `rate_image`
-  FROM " . TABLE_PREFIX . "ratemf_postbit pbit
-  LEFT JOIN
-    ". TABLE_PREFIX ."posts p
-    ON
-      p.pid = pbit.pid
-  LEFT JOIN
-    ". TABLE_PREFIX ."ratemf_rates rates
-    ON
-      rates.id = pbit.rid
-  WHERE
-    pbit.pid='".$db->escape_string($postId)."'
-    and pbit.del_time IS NULL
-");
-
-  $ratemf_sorted_by_rating = array();
-
-  while($result = $db->fetch_array($query))
-  {
-    if(!isset($ratemf_sorted_by_rating[$result['rate_id']])) {
-      $ratemf_sorted_by_rating[$result['rate_id']] = 0;
-    }
-    $ratemf_sorted_by_rating[$result['rate_id']]++;
-  }
-
-  if(count($ratemf_sorted_by_rating) == 0) return;
-
-  $maxRateValue = max($ratemf_sorted_by_rating);
-
-  if($maxRateValue < $settings['ratemf_op_thread_show']) return;
-
-  $maxRateArrayKey = array_keys($ratemf_sorted_by_rating, $maxRateValue);
-  $maxRateImage = ratemf_find_rates_by('id', $maxRateArrayKey[0]);
-  $maxRateImage = $maxRateImage['image'];
-
-  $thread['ratemf'] = ratemf_html("thread_simple_image", array(
-  'rate_image' => $maxRateImage,
-  'rate_count' => $maxRateValue));
-
-}
-
-/**
- * Based on settings, display ratings on user's profile page
- * @return void
- */
-function ratemf_profile_view()
-{
-  global $ratemf_profile;
 
 }

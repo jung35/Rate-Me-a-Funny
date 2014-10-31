@@ -88,6 +88,7 @@
   background: #fefefe;
   border: 1px solid #777;
   padding: 10px;
+  z-index: 2;
 }
 
 .ratemf_users_list {
