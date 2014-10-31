@@ -14,6 +14,7 @@ $plugins->add_hook("postbit_pm", "ratemf_postbit");
 $plugins->add_hook("postbit_announcement", "ratemf_postbit");
 
 $plugins->add_hook("showthread_start","ratemf_head");
+$plugins->add_hook("forumdisplay_start","ratemf_head");
 $plugins->add_hook("forumdisplay_thread", "ratemf_thread");
 
 $plugins->add_hook("member_profile_start", "ratemf_profile_view");
@@ -277,9 +278,10 @@ function ratemf_activate()
   find_replace_templatesets("forumdisplay_thread", "#".preg_quote('{$attachment_count}')."#i", '{$thread[\'ratemf\']}{$attachment_count}');
 
   /**
-   * Include all the assets (JS / CSS) on the post page
+   * Include all the assets (JS / CSS) on the post & forumdisplay page
    */
   find_replace_templatesets("showthread", "#".preg_quote('{$headerinclude}')."#i", '{$headerinclude}{$ratemf_head}');
+  find_replace_templatesets("forumdisplay", "#".preg_quote('{$headerinclude}')."#i", '{$headerinclude}{$ratemf_head}');
 }
 
 
@@ -307,6 +309,7 @@ function ratemf_deactivate()
   find_replace_templatesets("forumdisplay_thread", "#".preg_quote('{$thread[\'ratemf\']}')."#i", '', 0);
 
   find_replace_templatesets("showthread", "#".preg_quote('{$ratemf_head}')."#i", '', 0);
+  find_replace_templatesets("forumdisplay", "#".preg_quote('{$ratemf_head}')."#i", '', 0);
 }
 
 /**
@@ -945,8 +948,14 @@ function ratemf_html($type, $value)
           '. $value['rate_username'] .'
         </a>
       </li>';
+
+    case("thread_simple_image"):
+      return '
+      <div class="ratemf_thread_simple_image">
+        <img src="'. $mybb->settings['bburl'] .'/images/rating/'.$value['rate_image'].'"> x<strong>'. $value['rate_count'] .'</strong>
+      </div>';
   }
-  return;
+
 }
 
 /**
@@ -976,7 +985,7 @@ function ratemf_find_rates_by($type, $value)
  */
 function ratemf_thread()
 {
-  global $thread, $cache, $db;
+  global $thread, $cache, $db, $settings, $mybb;
   $ratemf_rates = $cache->read('ratemf_rates');
 
   $postId = $thread['firstpost'];
@@ -986,12 +995,9 @@ function ratemf_thread()
   SELECT
     p.pid AS `post_id`,
     pbit.uid AS `postbit_uid`,
-    u.username AS `postbit_username`,
     pbit.rid AS `rate_id`,
     rates.postbit AS `rate_postbit`,
-    rates.image AS `rate_image`,
-    pbit.rate_time AS `rate_time`,
-    pbit.del_time AS `del_time`
+    rates.image AS `rate_image`
   FROM " . TABLE_PREFIX . "ratemf_postbit pbit
   LEFT JOIN
     ". TABLE_PREFIX ."posts p
@@ -1003,7 +1009,33 @@ function ratemf_thread()
       rates.id = pbit.rid
   WHERE
     pbit.pid='".$db->escape_string($postId)."'
+    and pbit.del_time IS NULL
 ");
+
+  $ratemf_sorted_by_rating = array();
+
+  while($result = $db->fetch_array($query))
+  {
+    if(!isset($ratemf_sorted_by_rating[$result['rate_id']])) {
+      $ratemf_sorted_by_rating[$result['rate_id']] = 0;
+    }
+    $ratemf_sorted_by_rating[$result['rate_id']]++;
+  }
+
+  if(count($ratemf_sorted_by_rating) == 0) return;
+
+  $maxRateValue = max($ratemf_sorted_by_rating);
+
+  if($maxRateValue < $settings['ratemf_op_thread_show']) return;
+
+  $maxRateArrayKey = array_keys($ratemf_sorted_by_rating, $maxRateValue);
+  $maxRateImage = ratemf_find_rates_by('id', $maxRateArrayKey[0]);
+  $maxRateImage = $maxRateImage['image'];
+
+  $thread['ratemf'] = ratemf_html("thread_simple_image", array(
+  'rate_image' => $maxRateImage,
+  'rate_count' => $maxRateValue));
+
 }
 
 /**

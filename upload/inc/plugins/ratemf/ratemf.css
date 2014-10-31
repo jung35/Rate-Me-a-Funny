@@ -26,6 +26,8 @@
 
 .ratemf_users_rating li img {
   vertical-align: -3px;
+  max-width: 16px;
+  max-height: 16px;
 }
 
 .ratemf_users_rating .ratemf_users_rating_show {
@@ -105,4 +107,22 @@
 .ratemf_users_list li {
   padding: 0 10px;
   display: block;
+}
+
+.ratemf_users_list li img {
+  max-width: 16px;
+  max-height: 16px;
+}
+
+.ratemf_thread_simple_image {
+  margin-top: 2px;
+  margin-right: 2px;
+  float:right;
+  color: #777;
+  font-size: 10px;
+}
+
+.ratemf_thread_simple_image img {
+  max-width: 12px;
+  max-height: 12px;
 }
