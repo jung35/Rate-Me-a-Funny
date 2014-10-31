@@ -130,6 +130,14 @@ function ratemf_install()
       "value" => 10
   );
 
+  $ratemf_settings[] = array(
+      "name" => "ratemf_show_rating_profile",
+      "title" => "Show Rating on User Profile",
+      "description" => "If yes, it will show the rating statistics of the user in their profile.",
+      "optionscode" => "yesno",
+      "value" => 1
+  );
+
   foreach($ratemf_settings as $key => $setting)
   {
     $insert = array(
@@ -257,6 +265,32 @@ function ratemf_install()
 
     $cache->update('ratemf_rates', $rates);
   }
+
+  $template = '
+<table border="0" cellspacing="{$theme[\'borderwidth\']}" cellpadding="{$theme[\'tablespace\']}" width="100%" class="tborder">
+  <tr>
+    <td colspan="4" class="thead"><strong>{$mybb->user[\'username\']}\'s Rating Statistics</strong></td>
+  </tr>
+  <tr>
+    <th class="trow1">Rating</th>
+    <th class="trow1"># of Times Used</th>
+    <th class="trow1"># of Times Rated</th>
+    <th class="trow1">Most Rated On Post</th>
+  </tr>
+  {$ratemf_profile_list}
+</table>
+<br />
+  ';
+
+  $insert_array = array(
+    'title' => 'ratemf_member_profile',
+    'template' => $db->escape_string($template),
+    'sid' => '-1',
+    'version' => '2.0.5',
+    'dateline' => time()
+  );
+
+  $db->insert_query('templates', $insert_array);
 }
 
 /**
@@ -282,6 +316,11 @@ function ratemf_activate()
    */
   find_replace_templatesets("showthread", "#".preg_quote('{$headerinclude}')."#i", '{$headerinclude}{$ratemf_head}');
   find_replace_templatesets("forumdisplay", "#".preg_quote('{$headerinclude}')."#i", '{$headerinclude}{$ratemf_head}');
+
+  /**
+   * Display the ratings on the user profiles
+   */
+  find_replace_templatesets("member_profile", "#".preg_quote('{$modoptions}')."#i", '{$ratemf_profile}{$modoptions}');
 }
 
 
@@ -310,6 +349,8 @@ function ratemf_deactivate()
 
   find_replace_templatesets("showthread", "#".preg_quote('{$ratemf_head}')."#i", '', 0);
   find_replace_templatesets("forumdisplay", "#".preg_quote('{$ratemf_head}')."#i", '', 0);
+
+  find_replace_templatesets("member_profile", "#".preg_quote('{$ratemf_profile}')."#i", '', 0);
 }
 
 /**
@@ -329,7 +370,8 @@ function ratemf_uninstall()
     "ratemf_ajax_refresh",
     "ratemf_shrink",
     "ratemf_selfrate",
-    "ratemf_op_thread_show"
+    "ratemf_op_thread_show",
+    "ratemf_show_rating_profile"
   );
   rebuild_settings();
 
@@ -338,6 +380,8 @@ function ratemf_uninstall()
 
   if($db->table_exists("ratemf_postbit")) { $db->drop_table("ratemf_postbit"); }
   if($db->table_exists("ratemf_rates")) { $db->drop_table("ratemf_rates"); }
+
+  $db->delete_query("templates", "title = 'ratemf_member_profile'");
 }
 
 /**
@@ -1044,5 +1088,6 @@ function ratemf_thread()
  */
 function ratemf_profile_view()
 {
+  global $ratemf_profile;
 
 }
