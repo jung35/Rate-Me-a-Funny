@@ -34,17 +34,7 @@ function ratemf_info()
 {
   return array(
     "name" => "Rate Me a Funny",
-    "description" => "This plugin lets the user rate someone a smile (icon) per postbit. (MyBB: http://community.mybb.com/mods.php?action=view&pid=275)
-    <!--
-      <br>
-      <b>
-        Please look at
-        <a href='https://github.com/jung3o/Rate-Me-a-Funny/wiki/How-to-Install'>
-        THIS READ ME
-        </a>
-        so you know what to do after you install it!
-      </b>
-    -->",
+    "description" => "This plugin lets the user rate someone a smile (icon) per postbit. (MyBB: http://community.mybb.com/mods.php?action=view&pid=275)",
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
