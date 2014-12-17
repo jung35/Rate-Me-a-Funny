@@ -38,8 +38,9 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.5b",
+    "version" => "2.0.6",
     "compatibility" => "18*",
+    "codename" => "ratemf",
   );
 }
 
@@ -1090,7 +1091,7 @@ function ratemf_profile_view()
 
   foreach($ratemf_rates_reordered as $rating)
   {
-
+    if(!is_array($most_rated_post[$rating['id']])) continue;
     $highest_rated_post = max($most_rated_post[$rating['id']]);
     $highest_rated_post_id = array_keys($most_rated_post[$rating['id']], $highest_rated_post);
     $highest_rated_post_id = $highest_rated_post_id[0];
