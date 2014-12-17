@@ -38,7 +38,7 @@ function ratemf_info()
     "website" => "https://github.com/jung3o/Rate-Me-a-Funny/",
     "author" => "Jung Oh",
     "authorsite" => "http://jung3o.com",
-    "version" => "2.0.6",
+    "version" => "2.0.7",
     "compatibility" => "18*",
     "codename" => "ratemf",
   );

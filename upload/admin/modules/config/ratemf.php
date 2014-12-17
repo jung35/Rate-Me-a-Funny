@@ -94,9 +94,9 @@ if(!$action && empty($action))
   $page->output_footer();
 
 } elseif($action == 'disporder') {
-  if($_POST['display'])
+  if($mybb->get_input('display'))
   {
-    foreach($_POST['display'] as $id => $newdisplay)
+    foreach($mybb->get_input('display') as $id => $newdisplay)
     {
       $insert = array(
         "disporder" => $db->escape_string($newdisplay)
@@ -107,65 +107,66 @@ if(!$action && empty($action))
   }
   admin_redirect("index.php?module=config-ratemf");
 } elseif($action == 'delete') {
-  if($_GET['id'])
+  if($mybb->get_input('id'))
   {
-    $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($_GET['id'])."'");
+    $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($mybb->get_input('id'))."'");
     $name = $db->fetch_field($query, "name");
-    $page->output_confirm_action("index.php?module=config-ratemf&amp;action=do_delete&amp;id=".$_GET['id'], "Are you sure you want to delete \"".$name."\"");
+    $page->output_confirm_action("index.php?module=config-ratemf&amp;action=do_delete&amp;id=".$mybb->get_input('id'), "Are you sure you want to delete \"".$name."\"");
   }
 } elseif($action == 'do_delete') {
-  if($_POST)
+  if($mybb->request_method == "post")
   {
-    if(!$_POST['no'])
+    if(!$mybb->get_input('no')
     {
-      if($_GET['id'])
+      if($mybb->get_input('id'))
       {
         $db->update_query("ratemf_rates",
           array("del_time" => date("Y-m-d H:i:s", TIME_NOW)),
-          "id=".$db->escape_string($_GET['id']));
+          "id=".$db->escape_string($mybb->get_input('id'))
+        );
       }
     }
     ratemf_rates_cache();
   }
   admin_redirect("index.php?module=config-ratemf");
 } elseif($action == 'new_submit') {
-  if($_POST) {
-    if(isset($_POST['name']) &&
-      isset($_POST['postbit']) &&
-      isset($_POST['image']))
+  if($mybb->request_method = "post") {
+    if(isset($mybb->get_input('name')) &&
+      isset($mybb->get_input('postbit')) &&
+      isset($mybb->get_input('image')))
     {
-      if(!empty($_POST['name']) &&
-        !empty($_POST['postbit']) &&
-        !empty($_POST['image']))
+      if(!empty($mybb->get_input('name')) &&
+        !empty($mybb->get_input('postbit')) &&
+        !empty($mybb->get_input('image')))
       {
         $ranking_use = NULL;
         $ranking_see = NULL;
         $forum_use = NULL;
 
-        if(isset($_POST['ranking_use']))
+        if(isset($mybb->get_input('ranking_use')))
         {
           $gid = '';
-          foreach($_POST['ranking_use'] as $groups)
+          foreach($mybb->get_input('ranking_use') as $groups)
           {
             $gid .= ','.$groups;
           }
           $ranking_use = substr($gid,1);
         }
 
-        if(isset($_POST['ranking_see']))
+        if(isset($mybb->get_input('ranking_see')))
         {
           $gid = '';
-          foreach($_POST['ranking_see'] as $groups)
+          foreach($mybb->get_input('ranking_see') as $groups)
           {
             $gid .= ','.$groups;
           }
           $ranking_see = substr($gid,1);
         }
 
-        if(isset($_POST['forum_use']))
+        if(isset($mybb->get_input('forum_use')))
         {
           $fid = '';
-          foreach($_POST['forum_use'] as $forums)
+          foreach($mybb->get_input('forum_use') as $forums)
           {
             $fid .= ','.$forums;
           }
@@ -174,9 +175,9 @@ if(!$action && empty($action))
 
 
         $insert = array(
-          "name" => $db->escape_string($_POST['name']),
-          "postbit" => $db->escape_string($_POST['postbit']),
-          "image" => $db->escape_string($_POST['image']),
+          "name" => $db->escape_string($mybb->get_input('name')),
+          "postbit" => $db->escape_string($mybb->get_input('postbit')),
+          "image" => $db->escape_string($mybb->get_input('image')),
           "selected_ranks_use" => $db->escape_string($ranking_use),
           "selected_ranks_see" => $db->escape_string($ranking_see),
           "selected_forum_use" => $db->escape_string($forum_use),
@@ -193,9 +194,9 @@ if(!$action && empty($action))
   }
   admin_redirect("index.php?module=config-ratemf");
 } elseif($action == 'edit') {
-  if($_GET['id'])
+  if($mybb->get_input('id'))
   {
-    $query = $db->simple_select("ratemf_rates", "*", "id=".$db->escape_string($_GET['id']));
+    $query = $db->simple_select("ratemf_rates", "*", "id=".$db->escape_string($mybb->get_input('id')));
 
     while($result=$db->fetch_array($query))
     {
@@ -210,7 +211,7 @@ if(!$action && empty($action))
       $page->output_header("Rate Me a Funny : Edit Ratings");
       $page->output_nav_tabs($sub_tabs, "ratemf");
 
-      $form = new Form("index.php?module=config-ratemf&amp;action=do_edit&amp;id=".$_GET['id'], "post", "", 1);
+      $form = new Form("index.php?module=config-ratemf&amp;action=do_edit&amp;id=".$mybb->get_input('id'), "post", "", 1);
       $form_container = new FormContainer("Make New Changes Ratings");
 
       $table = new Table;
@@ -236,65 +237,64 @@ if(!$action && empty($action))
   admin_redirect("index.php?module=config-ratemf");
   }
 } elseif($action == 'do_edit') {
-  if($_GET['id'])
+  if($mybb->get_input('id'))
   {
-    if($_POST)
-    {
-      if(isset($_POST['name']) &&
-        isset($_POST['postbit']) &&
-        isset($_POST['image']))
+    if($mybb->get_input(
+    {)      if(isset($mybb->get_input('name')) &&
+        isset($mybb->get_input('postbit')) &&
+        isset($mybb->get_input('image')))
       {
-        if(!empty($_POST['name']) &&
-          !empty($_POST['postbit']) &&
-          !empty($_POST['image']))
+        if(!empty($mybb->get_input('name')) &&
+          !empty($mybb->get_input('postbit')) &&
+          !empty($mybb->get_input('image')))
         {
           $ranking_use = NULL;
           $ranking_see = NULL;
           $forum_use = NULL;
 
-          if(isset($_POST['ranking_use']))
+          if(isset($mybb->get_input('ranking_use')))
           {
             $gid = '';
-            foreach($_POST['ranking_use'] as $groups)
+            foreach($mybb->get_input('ranking_use') as $groups)
             {
               $gid .= ','.$groups;
             }
             $ranking_use = substr($gid,1);
           }
 
-          if(isset($_POST['ranking_see']))
+          if(isset($mybb->get_input('ranking_see')))
           {
             $gid = '';
-            foreach($_POST['ranking_see'] as $groups)
+            foreach($mybb->get_input('ranking_see') as $groups)
             {
               $gid .= ','.$groups;
             }
             $ranking_see = substr($gid,1);
           }
 
-          if(isset($_POST['forum_use']))
+          if(isset($mybb->get_input('forum_use')))
           {
             $fid = '';
-            foreach($_POST['forum_use'] as $forums)
+            foreach($mybb->get_input('forum_use') as $forums)
             {
               $fid .= ','.$forums;
             }
             $forum_use = substr($fid,1);
           }
 
-          $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($_GET['id'])."'");
+          $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($mybb->get_input('id'))."'");
           $disp = $db->fetch_field($query, "disporder");
 
           $insert = array(
-            "name" => $db->escape_string($_POST['name']),
-            "postbit" => $db->escape_string($_POST['postbit']),
-            "image" => $db->escape_string($_POST['image']),
+            "name" => $db->escape_string($mybb->get_input('name')),
+            "postbit" => $db->escape_string($mybb->get_input('postbit')),
+            "image" => $db->escape_string($mybb->get_input('image')),
             "selected_ranks_use" => $db->escape_string($ranking_use),
             "selected_ranks_see" => $db->escape_string($ranking_see),
             "selected_forum_use" => $db->escape_string($forum_use),
             "disporder" => $disp
           );
-          $db->update_query("ratemf_rates", $insert,"id=".$db->escape_string($_GET['id']));
+          $db->update_query("ratemf_rates", $insert,"id=".$db->escape_string($mybb->get_input('id')));
           ratemf_rates_cache();
         } else {
           admin_redirect("index.php?module=config-ratemf&amp;action=new");
