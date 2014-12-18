@@ -116,7 +116,7 @@ if(!$action && empty($action))
 } elseif($action == 'do_delete') {
   if($mybb->request_method == "post")
   {
-    if(!$mybb->get_input('no')
+    if(!$mybb->get_input('no'))
     {
       if($mybb->get_input('id'))
       {
@@ -131,9 +131,9 @@ if(!$action && empty($action))
   admin_redirect("index.php?module=config-ratemf");
 } elseif($action == 'new_submit') {
   if($mybb->request_method = "post") {
-    if(isset($mybb->get_input('name')) &&
-      isset($mybb->get_input('postbit')) &&
-      isset($mybb->get_input('image')))
+    if(!is_null($mybb->get_input('name')) &&
+      !is_null($mybb->get_input('postbit')) &&
+      !is_null($mybb->get_input('image')))
     {
       if(!empty($mybb->get_input('name')) &&
         !empty($mybb->get_input('postbit')) &&
@@ -143,7 +143,7 @@ if(!$action && empty($action))
         $ranking_see = NULL;
         $forum_use = NULL;
 
-        if(isset($mybb->get_input('ranking_use')))
+        if(!is_null($mybb->get_input('ranking_use')))
         {
           $gid = '';
           foreach($mybb->get_input('ranking_use') as $groups)
@@ -153,7 +153,7 @@ if(!$action && empty($action))
           $ranking_use = substr($gid,1);
         }
 
-        if(isset($mybb->get_input('ranking_see')))
+        if(!is_null($mybb->get_input('ranking_see')))
         {
           $gid = '';
           foreach($mybb->get_input('ranking_see') as $groups)
@@ -163,7 +163,7 @@ if(!$action && empty($action))
           $ranking_see = substr($gid,1);
         }
 
-        if(isset($mybb->get_input('forum_use')))
+        if(!is_null($mybb->get_input('forum_use')))
         {
           $fid = '';
           foreach($mybb->get_input('forum_use') as $forums)
@@ -239,10 +239,11 @@ if(!$action && empty($action))
 } elseif($action == 'do_edit') {
   if($mybb->get_input('id'))
   {
-    if($mybb->get_input(
-    {)      if(isset($mybb->get_input('name')) &&
-        isset($mybb->get_input('postbit')) &&
-        isset($mybb->get_input('image')))
+    if($mybb->request_method == "post")
+    {
+      if(!is_null($mybb->get_input('name')) &&
+        !is_null($mybb->get_input('postbit')) &&
+        !is_null($mybb->get_input('image')))
       {
         if(!empty($mybb->get_input('name')) &&
           !empty($mybb->get_input('postbit')) &&
@@ -252,7 +253,7 @@ if(!$action && empty($action))
           $ranking_see = NULL;
           $forum_use = NULL;
 
-          if(isset($mybb->get_input('ranking_use')))
+          if(!is_null($mybb->get_input('ranking_use')))
           {
             $gid = '';
             foreach($mybb->get_input('ranking_use') as $groups)
@@ -262,7 +263,7 @@ if(!$action && empty($action))
             $ranking_use = substr($gid,1);
           }
 
-          if(isset($mybb->get_input('ranking_see')))
+          if(!is_null($mybb->get_input('ranking_see')))
           {
             $gid = '';
             foreach($mybb->get_input('ranking_see') as $groups)
@@ -272,7 +273,7 @@ if(!$action && empty($action))
             $ranking_see = substr($gid,1);
           }
 
-          if(isset($mybb->get_input('forum_use')))
+          if(!is_null($mybb->get_input('forum_use')))
           {
             $fid = '';
             foreach($mybb->get_input('forum_use') as $forums)
