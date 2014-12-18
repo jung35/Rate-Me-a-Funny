@@ -135,59 +135,52 @@ if(!$action && empty($action))
       !is_null($mybb->get_input('postbit')) &&
       !is_null($mybb->get_input('image')))
     {
-      if(!empty($mybb->get_input('name')) &&
-        !empty($mybb->get_input('postbit')) &&
-        !empty($mybb->get_input('image')))
+      $ranking_use = NULL;
+      $ranking_see = NULL;
+      $forum_use = NULL;
+
+      if(!is_null($mybb->get_input('ranking_use')))
       {
-        $ranking_use = NULL;
-        $ranking_see = NULL;
-        $forum_use = NULL;
-
-        if(!is_null($mybb->get_input('ranking_use')))
+        $gid = '';
+        foreach($mybb->get_input('ranking_use') as $groups)
         {
-          $gid = '';
-          foreach($mybb->get_input('ranking_use') as $groups)
-          {
-            $gid .= ','.$groups;
-          }
-          $ranking_use = substr($gid,1);
+          $gid .= ','.$groups;
         }
-
-        if(!is_null($mybb->get_input('ranking_see')))
-        {
-          $gid = '';
-          foreach($mybb->get_input('ranking_see') as $groups)
-          {
-            $gid .= ','.$groups;
-          }
-          $ranking_see = substr($gid,1);
-        }
-
-        if(!is_null($mybb->get_input('forum_use')))
-        {
-          $fid = '';
-          foreach($mybb->get_input('forum_use') as $forums)
-          {
-            $fid .= ','.$forums;
-          }
-          $forum_use = substr($fid,1);
-        }
-
-
-        $insert = array(
-          "name" => $db->escape_string($mybb->get_input('name')),
-          "postbit" => $db->escape_string($mybb->get_input('postbit')),
-          "image" => $db->escape_string($mybb->get_input('image')),
-          "selected_ranks_use" => $db->escape_string($ranking_use),
-          "selected_ranks_see" => $db->escape_string($ranking_see),
-          "selected_forum_use" => $db->escape_string($forum_use),
-          "disporder" => 0
-        );
-        $db->insert_query("ratemf_rates", $insert);
-        ratemf_rates_cache();
-      } else {
-        admin_redirect("index.php?module=config-ratemf&amp;action=new");
+        $ranking_use = substr($gid,1);
       }
+
+      if(!is_null($mybb->get_input('ranking_see')))
+      {
+        $gid = '';
+        foreach($mybb->get_input('ranking_see') as $groups)
+        {
+          $gid .= ','.$groups;
+        }
+        $ranking_see = substr($gid,1);
+      }
+
+      if(!is_null($mybb->get_input('forum_use')))
+      {
+        $fid = '';
+        foreach($mybb->get_input('forum_use') as $forums)
+        {
+          $fid .= ','.$forums;
+        }
+        $forum_use = substr($fid,1);
+      }
+
+
+      $insert = array(
+        "name" => $db->escape_string($mybb->get_input('name')),
+        "postbit" => $db->escape_string($mybb->get_input('postbit')),
+        "image" => $db->escape_string($mybb->get_input('image')),
+        "selected_ranks_use" => $db->escape_string($ranking_use),
+        "selected_ranks_see" => $db->escape_string($ranking_see),
+        "selected_forum_use" => $db->escape_string($forum_use),
+        "disporder" => 0
+      );
+      $db->insert_query("ratemf_rates", $insert);
+      ratemf_rates_cache();
     } else {
       admin_redirect("index.php?module=config-ratemf");
     }
@@ -245,61 +238,54 @@ if(!$action && empty($action))
         !is_null($mybb->get_input('postbit')) &&
         !is_null($mybb->get_input('image')))
       {
-        if(!empty($mybb->get_input('name')) &&
-          !empty($mybb->get_input('postbit')) &&
-          !empty($mybb->get_input('image')))
+        $ranking_use = NULL;
+        $ranking_see = NULL;
+        $forum_use = NULL;
+
+        if(!is_null($mybb->get_input('ranking_use')))
         {
-          $ranking_use = NULL;
-          $ranking_see = NULL;
-          $forum_use = NULL;
-
-          if(!is_null($mybb->get_input('ranking_use')))
+          $gid = '';
+          foreach($mybb->get_input('ranking_use') as $groups)
           {
-            $gid = '';
-            foreach($mybb->get_input('ranking_use') as $groups)
-            {
-              $gid .= ','.$groups;
-            }
-            $ranking_use = substr($gid,1);
+            $gid .= ','.$groups;
           }
-
-          if(!is_null($mybb->get_input('ranking_see')))
-          {
-            $gid = '';
-            foreach($mybb->get_input('ranking_see') as $groups)
-            {
-              $gid .= ','.$groups;
-            }
-            $ranking_see = substr($gid,1);
-          }
-
-          if(!is_null($mybb->get_input('forum_use')))
-          {
-            $fid = '';
-            foreach($mybb->get_input('forum_use') as $forums)
-            {
-              $fid .= ','.$forums;
-            }
-            $forum_use = substr($fid,1);
-          }
-
-          $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($mybb->get_input('id'))."'");
-          $disp = $db->fetch_field($query, "disporder");
-
-          $insert = array(
-            "name" => $db->escape_string($mybb->get_input('name')),
-            "postbit" => $db->escape_string($mybb->get_input('postbit')),
-            "image" => $db->escape_string($mybb->get_input('image')),
-            "selected_ranks_use" => $db->escape_string($ranking_use),
-            "selected_ranks_see" => $db->escape_string($ranking_see),
-            "selected_forum_use" => $db->escape_string($forum_use),
-            "disporder" => $disp
-          );
-          $db->update_query("ratemf_rates", $insert,"id=".$db->escape_string($mybb->get_input('id')));
-          ratemf_rates_cache();
-        } else {
-          admin_redirect("index.php?module=config-ratemf&amp;action=new");
+          $ranking_use = substr($gid,1);
         }
+
+        if(!is_null($mybb->get_input('ranking_see')))
+        {
+          $gid = '';
+          foreach($mybb->get_input('ranking_see') as $groups)
+          {
+            $gid .= ','.$groups;
+          }
+          $ranking_see = substr($gid,1);
+        }
+
+        if(!is_null($mybb->get_input('forum_use')))
+        {
+          $fid = '';
+          foreach($mybb->get_input('forum_use') as $forums)
+          {
+            $fid .= ','.$forums;
+          }
+          $forum_use = substr($fid,1);
+        }
+
+        $query = $db->simple_select("ratemf_rates", "*", "id='".$db->escape_string($mybb->get_input('id'))."'");
+        $disp = $db->fetch_field($query, "disporder");
+
+        $insert = array(
+          "name" => $db->escape_string($mybb->get_input('name')),
+          "postbit" => $db->escape_string($mybb->get_input('postbit')),
+          "image" => $db->escape_string($mybb->get_input('image')),
+          "selected_ranks_use" => $db->escape_string($ranking_use),
+          "selected_ranks_see" => $db->escape_string($ranking_see),
+          "selected_forum_use" => $db->escape_string($forum_use),
+          "disporder" => $disp
+        );
+        $db->update_query("ratemf_rates", $insert,"id=".$db->escape_string($mybb->get_input('id')));
+        ratemf_rates_cache();
       } else {
         admin_redirect("index.php?module=config-ratemf");
       }
